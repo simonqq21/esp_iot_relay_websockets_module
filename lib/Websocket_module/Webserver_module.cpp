@@ -3,7 +3,7 @@
 AsyncWebServer WebserverModule::_server = AsyncWebServer(5555);
 AsyncWebSocket WebserverModule::_ws = AsyncWebSocket("/ws");
 JsonDocument WebserverModule::_jsonDoc;
-char WebserverModule::strData[200];
+char WebserverModule::_strData[200];
 
 // AsyncWebServer _server = AsyncWebServer(5555);
 // AsyncWebSocket _ws = AsyncWebSocket("/ws");
@@ -29,10 +29,10 @@ void WebserverModule::handleWebSocketMessage(void *arg, uint8_t *data, size_t le
         data[len] = 0;
 
         DeserializationError error = deserializeJson(_jsonDoc, (char*)data); 
-        String cmd = _jsonDoc["cmd"];
-        String type = _jsonDoc["type"];
-        // String payload = _jsonDoc["payload"]["ssid"];
-        JsonDocument payloadJSON = _jsonDoc["payload"];
+        String cmd = _jsonDoc[CMD_KEY];
+        String type = _jsonDoc[TYPE_KEY];
+        // String payload = _jsonDoc[PAYLOAD_KEY]["ssid"];
+        JsonDocument payloadJSON = _jsonDoc[PAYLOAD_KEY];
 
         Serial.printf("cmd=%s\n", cmd);
         Serial.printf("type=%s\n", type);
@@ -44,7 +44,7 @@ void WebserverModule::handleWebSocketMessage(void *arg, uint8_t *data, size_t le
         // serializeJson(_jsonDoc, output);
         // Serial.print(output);
         // JsonDocument pj;
-        // deserializeJson(pj, _jsonDoc["payload"]);
+        // deserializeJson(pj, _jsonDoc[PAYLOAD_KEY]);
         // JsonObject payload = pj.as<JsonObject>();
         // Serial.printf("%s\n", pj["ssid"]);
         
@@ -76,11 +76,17 @@ void WebserverModule::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *clie
 }
 
 // methods to send ESP32 state to client browser
-void WebserverModule::sendConnection() {
+void WebserverModule::sendConnection(JsonDocument inputPayloadJSON) {
     _jsonDoc.clear();
-    _jsonDoc["cmd"] = LOAD_CMD;
-    _jsonDoc["type"] = CONNECTION_TYPE;
-    // _ws.textAll();
+    _jsonDoc[CMD_KEY] = LOAD_CMD;
+    _jsonDoc[TYPE_KEY] = CONNECTION_TYPE;
+    JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
+    payloadJSON["ssid"] = "ssid01";
+    payloadJSON["ip"] = IPAddress(192,168,5,70);
+    payloadJSON["port"] = 5555;
+    serializeJson(_jsonDoc, _strData);
+    Serial.printf("serialized JSON = %s\n", _strData);
+    _ws.textAll(_strData);
 }
 
 void WebserverModule::sendRelayState() {
@@ -99,7 +105,7 @@ void WebserverModule::sendConfig() {
 // method to handle requests from the client browser 
 void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
     if (type == CONNECTION_TYPE) {
-        sendConnection();
+        sendConnection(payloadJSON);
     }
     else if (type == RELAY_STATE_TYPE) {
         sendRelayState();

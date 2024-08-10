@@ -168,6 +168,10 @@ from browser to ESP32
 */
 
 // some definitions for JSON msg constants
+const String CMD_KEY = "cmd";
+const String TYPE_KEY = "type";
+const String PAYLOAD_KEY = "payload";
+
 const String LOAD_CMD = "load";
 const String SAVE_CMD = "save";
 const String REQUEST_CMD = "request";
@@ -185,7 +189,7 @@ class WebserverModule {
         static void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
 
         // methods to send ESP32 state to client browser
-        static void sendConnection();
+        static void sendConnection(JsonDocument payloadJSON);
         static void sendRelayState();
         static void sendDateTime();
         static void sendConfig();
@@ -204,7 +208,7 @@ class WebserverModule {
         static AsyncWebServer _server;
         static AsyncWebSocket _ws;
         static JsonDocument _jsonDoc;
-        static char strData[200];
+        static char _strData[200];
 };
 
 #endif
