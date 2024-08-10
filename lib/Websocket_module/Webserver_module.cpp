@@ -48,25 +48,11 @@ void WebserverModule::handleWebSocketMessage(void *arg, uint8_t *data, size_t le
         // JsonObject payload = pj.as<JsonObject>();
         // Serial.printf("%s\n", pj["ssid"]);
         
-        if (cmd == "request") {
+        if (cmd == REQUEST_CMD) {
             handleRequest(type, payloadJSON);
         }
-        else if (cmd == "save") {
-            // if (type == "connection") {
-
-            // }
-            // else if (type == "relay_state") {
-
-            // }
-            // else if (type == "datetime") {
-
-            // }
-            // else if (type == "config") {
-
-            // }
-            // else {
-
-            // }
+        else if (cmd == SAVE_CMD) {
+            receiveData(type, payloadJSON);
         }
     }
 }
@@ -91,7 +77,10 @@ void WebserverModule::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *clie
 
 // methods to send ESP32 state to client browser
 void WebserverModule::sendConnection() {
-
+    _jsonDoc.clear();
+    _jsonDoc["cmd"] = LOAD_CMD;
+    _jsonDoc["type"] = CONNECTION_TYPE
+    // _ws.textAll();
 }
 
 void WebserverModule::sendRelayState() {
@@ -109,16 +98,16 @@ void WebserverModule::sendConfig() {
 
 // method to handle requests from the client browser 
 void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
-    if (type == "connection") {
+    if (type == CONNECTION_TYPE) {
         sendConnection();
     }
-    else if (type == "relay_state") {
+    else if (type == RELAY_STATE_TYPE) {
         sendRelayState();
     }
-    else if (type == "datetime") {
+    else if (type == DATETIME_TYPE) {
         sendDateTime();
     }
-    else if (type == "config") {
+    else if (type == CONFIG_TYPE) {
         sendConfig();
     }
     else {
@@ -145,6 +134,20 @@ void WebserverModule::receiveConfig() {
 }
 
 void WebserverModule::receiveData(String type, JsonDocument payloadJSON) {
+    if (type == CONNECTION_TYPE) {
 
+    }
+    else if (type == RELAY_STATE_TYPE) {
+
+    }
+    else if (type == DATETIME_TYPE) {
+
+    }
+    else if (type == CONFIG_TYPE) {
+
+    }
+    else {
+
+    }
 }
 

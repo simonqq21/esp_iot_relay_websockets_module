@@ -167,6 +167,15 @@ from browser to ESP32
 }
 */
 
+// some definitions for JSON msg constants
+#define LOAD_CMD load 
+#define SAVE_CMD save 
+#define REQUEST_CMD request 
+#define CONNECTION_TYPE connection
+#define RELAY_STATE_TYPE relay_state 
+#define DATETIME_TYPE datetime 
+#define CONFIG_TYPE config
+
 class WebserverModule {
     public:
         WebserverModule();
