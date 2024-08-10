@@ -79,7 +79,7 @@ void WebserverModule::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *clie
 void WebserverModule::sendConnection() {
     _jsonDoc.clear();
     _jsonDoc["cmd"] = LOAD_CMD;
-    _jsonDoc["type"] = CONNECTION_TYPE
+    _jsonDoc["type"] = CONNECTION_TYPE;
     // _ws.textAll();
 }
 
