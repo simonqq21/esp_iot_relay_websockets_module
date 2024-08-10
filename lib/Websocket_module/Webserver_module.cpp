@@ -29,11 +29,44 @@ void WebserverModule::handleWebSocketMessage(void *arg, uint8_t *data, size_t le
         data[len] = 0;
 
         DeserializationError error = deserializeJson(_jsonDoc, (char*)data); 
-        String cmd = _jsonDoc["type"];
+        String cmd = _jsonDoc["cmd"];
+        String type = _jsonDoc["type"];
+        // String payload = _jsonDoc["payload"]["ssid"];
+        JsonDocument payloadJSON = _jsonDoc["payload"];
+
         Serial.printf("cmd=%s\n", cmd);
+        Serial.printf("type=%s\n", type);
+        // Serial.printf("payload=%s\n", payloadJSON["ssid"]);
+        // String ssid = payloadJSON["ssid"];
+        // Serial.printf("ssid=%s\n", ssid);
+        // Serial.printf("payload2=%s\n", payload2);
+        // char output[100];
+        // serializeJson(_jsonDoc, output);
+        // Serial.print(output);
+        // JsonDocument pj;
+        // deserializeJson(pj, _jsonDoc["payload"]);
+        // JsonObject payload = pj.as<JsonObject>();
+        // Serial.printf("%s\n", pj["ssid"]);
         
         if (cmd == "request") {
-            Serial.printf("requested!");
+            handleRequest(type, payloadJSON);
+        }
+        else if (cmd == "save") {
+            // if (type == "connection") {
+
+            // }
+            // else if (type == "relay_state") {
+
+            // }
+            // else if (type == "datetime") {
+
+            // }
+            // else if (type == "config") {
+
+            // }
+            // else {
+
+            // }
         }
     }
 }
@@ -57,7 +90,7 @@ void WebserverModule::onEvent(AsyncWebSocket *server, AsyncWebSocketClient *clie
 }
 
 // methods to send ESP32 state to client browser
-void WebserverModule::sendConnectionDetails() {
+void WebserverModule::sendConnection() {
 
 }
 
@@ -65,23 +98,37 @@ void WebserverModule::sendRelayState() {
 
 }
 
-void WebserverModule::sendSystemDateTime() {
+void WebserverModule::sendDateTime() {
 
 }
 
-void WebserverModule::sendMainConfig() {
+void WebserverModule::sendConfig() {
 
 }
 
 
 // method to handle requests from the client browser 
-void WebserverModule::handleRequest() {
-
+void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
+    if (type == "connection") {
+        sendConnection();
+    }
+    else if (type == "relay_state") {
+        sendRelayState();
+    }
+    else if (type == "datetime") {
+        sendDateTime();
+    }
+    else if (type == "config") {
+        sendConfig();
+    }
+    else {
+        
+    }
 }
 
 
 // methods to receive and set new state from client browser 
-void WebserverModule::receiveConnectionDetails() {
+void WebserverModule::receiveConnection() {
 
 }
 
@@ -89,12 +136,15 @@ void WebserverModule::receiveRelayState() {
 
 }
 
-void WebserverModule::receiveSystemDateTime() {
+void WebserverModule::receiveDateTime() {
 
 }
 
-void WebserverModule::receiveMainConfig() {
+void WebserverModule::receiveConfig() {
 
 }
 
+void WebserverModule::receiveData(String type, JsonDocument payloadJSON) {
+
+}
 

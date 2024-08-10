@@ -18,44 +18,64 @@ EEPROM configuration module
 
 
 messages:
+Standard contents of every JSON payload:
+{
+    cmd: string,
+    type: string,
+    payload: any,
+}
+
+
 
 from ESP32 to browser
 - ESP32 send connection details to browser
 {
+    cmd: "load",
     type: "connection",
-    ssid: string,
-    ip: string,
-    port: int,
+    payload: {
+        ssid: string,
+        ip: string,
+        port: int,
+    },
 }
 
 - ESP32 send relay state to browser
 {
+    cmd: "load",
     type: "relay_state",
-    relay_state: bool,
+    payload: {
+        relay_state: bool,
+    },
 }
 
 - ESP32 send system date and time to browser
 {
+    cmd: "load",
     type: "datetime", 
-    datetime: string (ISO datetime format),
+    payload: {
+        datetime: string (ISO datetime format),
+    },
 }
 
 - ESP32 send main configuration to browser
 {
+    cmd: "load",
     type: "config",
-    name: string,
-    ntpEnabledSetting: bool,
-    gmtOffsetSetting: int, 
-    timerEnabledSetting: bool,
-    ledSetting: int,
-    relayManualSetting: bool,
-    timeSlots[]: timeSlot[] {
-        index: int,
-        initialized: int,
-        enabled: bool,
-        onStartTime: string (ISO datetime),
-        onEndTime: string (ISO datetime),
-        durationInSeconds: int,
+    payload: {
+        name: string,
+        ntpEnabledSetting: bool,
+        gmtOffsetSetting: int, 
+        timerEnabledSetting: bool,
+        ledSetting: int,
+        relayManualSetting: bool,
+        timeSlots[]: timeSlot[] {
+            index: int,
+            initialized: int,
+            enabled: bool,
+            onStartTime: string (ISO datetime),
+            onEndTime: string (ISO datetime),
+            durationInSeconds: int,
+        },
     },
 }
 
@@ -64,65 +84,85 @@ from ESP32 to browser
 from browser to ESP32
 - Browser request connection details from ESP32
 {
-    type: "request",
-    request_type: "connection",
-}
-
-- Browser send connection details to ESP32
-{
+    cmd: "request",
     type: "connection",
-    ssid: string,
-    pass: string,
-    ip: string,
-    port: int,
+    payload: {
+    },
 }
 
 - Browser request relay state from ESP32
 {
-    type: "request",
-    request_type: "relay_state",
-}
-
-- Browser send and set relay state to ESP32
-{
-    type: "relay_state", 
-    relay_state: bool,
+    cmd: "request",
+    type: "relay_state",
+    payload: {
+    },
 }
 
 - Browser request system date and time from ESP32
 {
-    type: "request",
-    request_type: "datetime",
-}
-
-- Browser send and set system date and time to ESP32
-{
-    type: "datetime", 
-    datetime: string (ISO datetime format),
+    cmd: "request",
+    type: "datetime",
+    payload: {
+    },
 }
 
 - Browser request main configuration from ESP32
 {
-    type: "request",
-    request_type: "config",
+    cmd: "request",
+    type: "config",
+    payload: {
+    },
+}
+
+- Browser send connection details to ESP32
+{
+    cmd: "save",
+    type: "connection",
+    payload: {
+        ssid: string,
+        pass: string,
+        ip: string,
+        port: int,
+    },
+}
+
+- Browser send and set relay state to ESP32
+{
+    cmd: "save",
+    type: "relay_state", 
+    payload: {
+        relay_state: bool,
+    },
+}
+
+- Browser send and set system date and time to ESP32
+{
+    cmd: "save",
+    type: "datetime", 
+    payload: {
+        datetime: string (ISO datetime format),
+    },
 }
 
 - Browser send and set main configuration to ESP32
 {
+    cmd: "save",
     type: "config",
-    name: string,
-    ntpEnabledSetting: bool,
-    gmtOffsetSetting: int, 
-    timerEnabledSetting: bool,
-    ledSetting: int,
-    relayManualSetting: bool,
-    timeSlots[]: timeSlot[] {
-        index: int,
-        initialized: int,
-        enabled: bool,
-        onStartTime: string (ISO datetime),
-        onEndTime: string (ISO datetime),
-        durationInSeconds: int,
+    payload: {
+        name: string,
+        ntpEnabledSetting: bool,
+        gmtOffsetSetting: int, 
+        timerEnabledSetting: bool,
+        ledSetting: int,
+        relayManualSetting: bool,
+        timeSlots[]: timeSlot[] {
+            index: int,
+            initialized: int,
+            enabled: bool,
+            onStartTime: string (ISO datetime),
+            onEndTime: string (ISO datetime),
+            durationInSeconds: int,
+        },
     },
 }
 */
@@ -136,19 +176,21 @@ class WebserverModule {
         static void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
 
         // methods to send ESP32 state to client browser
-        static void sendConnectionDetails();
+        static void sendConnection();
         static void sendRelayState();
-        static void sendSystemDateTime();
-        static void sendMainConfig();
-
+        static void sendDateTime();
+        static void sendConfig();
         // method to handle requests from the client browser 
-        static void handleRequest();
+        static void handleRequest(String type, JsonDocument payloadJSON); 
 
         // methods to receive and set new state from client browser 
-        static void receiveConnectionDetails();
+        static void receiveConnection();
         static void receiveRelayState();
-        static void receiveSystemDateTime();
-        static void receiveMainConfig();
+        static void receiveDateTime();
+        static void receiveConfig();
+        // method to handle receiving different kinds of data from the client browser 
+        static void receiveData(String type, JsonDocument payloadJSON);
+
     private:
         static AsyncWebServer _server;
         static AsyncWebSocket _ws;
