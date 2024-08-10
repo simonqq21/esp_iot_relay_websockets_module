@@ -1,12 +1,22 @@
 #ifndef WEBSERVER_MODULE_H
 #define WEBSERVER_MODULE_H
 #include <Arduino.h>
+#include <FS.h>
+#include <LittleFS.h>
 #include <WiFi.h>
 #include "ESPAsyncWebServer.h"
 #include "AsyncTCP.h"
 #include "ArduinoJson.h"
 
+#include "EEPROMConfig.h"
+
 /*
+Other libraries and modules to include:
+IO module
+RTC module
+EEPROM configuration module 
+
+
 messages:
 
 from ESP32 to browser
@@ -30,7 +40,7 @@ from ESP32 to browser
     datetime: string (ISO datetime format),
 }
 
-- ESP32 send configuration to browser
+- ESP32 send main configuration to browser
 {
     type: "config",
     name: string,
@@ -91,13 +101,13 @@ from browser to ESP32
     datetime: string (ISO datetime format),
 }
 
-- Browser request configuration from ESP32
+- Browser request main configuration from ESP32
 {
     type: "request",
     request_type: "config",
 }
 
-- Browser send and set configuration to ESP32
+- Browser send and set main configuration to ESP32
 {
     type: "config",
     name: string,
@@ -119,16 +129,31 @@ from browser to ESP32
 
 class WebserverModule {
     public:
-    WebserverModule();
-        void begin();
-        void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type,
+        WebserverModule();
+        static void begin();
+        static void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type,
             void *arg, uint8_t *data, size_t len);
-        void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
+        static void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
+
+        // methods to send ESP32 state to client browser
+        static void sendConnectionDetails();
+        static void sendRelayState();
+        static void sendSystemDateTime();
+        static void sendMainConfig();
+
+        // method to handle requests from the client browser 
+        static void handleRequest();
+
+        // methods to receive and set new state from client browser 
+        static void receiveConnectionDetails();
+        static void receiveRelayState();
+        static void receiveSystemDateTime();
+        static void receiveMainConfig();
     private:
-        AsyncWebServer _server;
-        AsyncWebSocket _ws;
-        StaticJsonDocument<150> _jsonDoc;
-        char strData[150];
+        static AsyncWebServer _server;
+        static AsyncWebSocket _ws;
+        static JsonDocument _jsonDoc;
+        static char strData[200];
 };
 
 #endif
