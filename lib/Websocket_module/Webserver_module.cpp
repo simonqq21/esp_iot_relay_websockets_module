@@ -4,23 +4,23 @@ AsyncWebServer WebserverModule::_server = AsyncWebServer(5555);
 AsyncWebSocket WebserverModule::_ws = AsyncWebSocket("/ws");
 JsonDocument WebserverModule::_jsonDoc;
 char WebserverModule::_strData[200];
+EEPROMConfig* WebserverModule::_eC;
 
 // AsyncWebServer _server = AsyncWebServer(5555);
 // AsyncWebSocket _ws = AsyncWebSocket("/ws");
-
 // WebserverModule::WebserverModule(): _server(5555), _ws("/ws") {
-
 // }
 
 WebserverModule::WebserverModule() {
 
 }
 
-void WebserverModule::begin() {
-    Serial.println("initialized ws");
+void WebserverModule::begin(EEPROMConfig* eC) {
+    _eC = eC;
     _ws.onEvent(onEvent);
     _server.addHandler(&_ws);
     _server.begin();
+    Serial.println("initialized ws");
 }
 
 void WebserverModule::handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
@@ -81,9 +81,9 @@ void WebserverModule::sendConnection(JsonDocument inputPayloadJSON) {
     _jsonDoc[CMD_KEY] = LOAD_CMD;
     _jsonDoc[TYPE_KEY] = CONNECTION_TYPE;
     JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
-    payloadJSON["ssid"] = "ssid01";
-    payloadJSON["ip"] = IPAddress(192,168,5,70);
-    payloadJSON["port"] = 5555;
+    payloadJSON["ssid"] = _eC->getSSID();
+    payloadJSON["ip"] = _eC->getIPAddress();
+    payloadJSON["port"] = _eC->getPort();
     serializeJson(_jsonDoc, _strData);
     Serial.printf("serialized JSON = %s\n", _strData);
     _ws.textAll(_strData);

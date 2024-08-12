@@ -7,6 +7,8 @@ IPAddress gateway;
 IPAddress subnet(255,255,255,0);
 IPAddress dns(8,8,8,8);
 
+EEPROMConfig eC;
+
 void setup() {
   Serial.begin(115200);
   WiFi.begin("QUE-STARLINK", "Quefamily01259");
@@ -18,7 +20,10 @@ void setup() {
   localIP = WiFi.localIP();
   localIP[3] = 70;
   WiFi.config(localIP, gateway, subnet);
-  wsMod.begin();
+  wsMod.begin(&eC);
+  eC.setSSID("test-SSID");
+  eC.setIPAddress(IPAddress(192,168,5,70));
+  eC.setPort(6666);
 }
 
 void loop() {

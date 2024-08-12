@@ -183,7 +183,7 @@ const String CONFIG_TYPE = "config";
 class WebserverModule {
     public:
         WebserverModule();
-        static void begin();
+        static void begin(EEPROMConfig* eC);
         static void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type,
             void *arg, uint8_t *data, size_t len);
         static void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
@@ -209,6 +209,7 @@ class WebserverModule {
         static AsyncWebSocket _ws;
         static JsonDocument _jsonDoc;
         static char _strData[200];
+        static EEPROMConfig* _eC;
 };
 
 #endif
