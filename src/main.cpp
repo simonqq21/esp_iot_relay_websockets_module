@@ -8,6 +8,7 @@ IPAddress subnet(255,255,255,0);
 IPAddress dns(8,8,8,8);
 
 EEPROMConfig eC;
+RTCNTP rtcntp(+8);
 
 void setup() {
   Serial.begin(115200);
@@ -20,7 +21,9 @@ void setup() {
   localIP = WiFi.localIP();
   localIP[3] = 70;
   WiFi.config(localIP, gateway, subnet);
-  wsMod.begin(&eC);
+  eC.begin();
+  rtcntp.begin();
+  wsMod.begin(&eC, &rtcntp);
   eC.setSSID("test-SSID");
   eC.setIPAddress(IPAddress(192,168,5,70));
   eC.setPort(6666);

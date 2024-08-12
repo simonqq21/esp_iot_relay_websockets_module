@@ -5,6 +5,7 @@ AsyncWebSocket WebserverModule::_ws = AsyncWebSocket("/ws");
 JsonDocument WebserverModule::_jsonDoc;
 char WebserverModule::_strData[200];
 EEPROMConfig* WebserverModule::_eC;
+RTCNTP* WebserverModule::_rtcntp;
 
 // AsyncWebServer _server = AsyncWebServer(5555);
 // AsyncWebSocket _ws = AsyncWebSocket("/ws");
@@ -15,8 +16,9 @@ WebserverModule::WebserverModule() {
 
 }
 
-void WebserverModule::begin(EEPROMConfig* eC) {
+void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp) {
     _eC = eC;
+    _rtcntp = rtcntp;
     _ws.onEvent(onEvent);
     _server.addHandler(&_ws);
     _server.begin();
@@ -89,16 +91,37 @@ void WebserverModule::sendConnection(JsonDocument inputPayloadJSON) {
     _ws.textAll(_strData);
 }
 
-void WebserverModule::sendRelayState() {
-
+void WebserverModule::sendRelayState(JsonDocument inputPayloadJSON) {
+    _jsonDoc.clear();
+    _jsonDoc[CMD_KEY] = LOAD_CMD;
+    _jsonDoc[TYPE_KEY] = RELAY_STATE_TYPE;
+    JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
+    payloadJSON["relay_state"] = _eC->getRelayManualSetting();
+    serializeJson(_jsonDoc, _strData);
+    Serial.printf("serialized JSON = %s\n", _strData);
+    _ws.textAll(_strData);
 }
 
-void WebserverModule::sendDateTime() {
-
+void WebserverModule::sendDateTime(JsonDocument inputPayloadJSON) {
+    _jsonDoc.clear();
+    _jsonDoc[CMD_KEY] = LOAD_CMD;
+    _jsonDoc[TYPE_KEY] = DATETIME_TYPE;
+    JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
+    payloadJSON["datetime"] = _rtcntp->getISODateTime();
+    serializeJson(_jsonDoc, _strData);
+    Serial.printf("serialized JSON = %s\n", _strData);
+    _ws.textAll(_strData);
 }
 
-void WebserverModule::sendConfig() {
-
+void WebserverModule::sendConfig(JsonDocument inputPayloadJSON) {
+    _jsonDoc.clear();
+    _jsonDoc[CMD_KEY] = LOAD_CMD;
+    _jsonDoc[TYPE_KEY] = CONFIG_TYPE;
+    JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
+    // payloadJSON["datetime"] = _rtcntp->getISODateTime();
+    serializeJson(_jsonDoc, _strData);
+    Serial.printf("serialized JSON = %s\n", _strData);
+    _ws.textAll(_strData);
 }
 
 
@@ -108,13 +131,13 @@ void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
         sendConnection(payloadJSON);
     }
     else if (type == RELAY_STATE_TYPE) {
-        sendRelayState();
+        sendRelayState(payloadJSON);
     }
     else if (type == DATETIME_TYPE) {
-        sendDateTime();
+        sendDateTime(payloadJSON);
     }
     else if (type == CONFIG_TYPE) {
-        sendConfig();
+        sendConfig(payloadJSON);
     }
     else {
         
@@ -123,19 +146,19 @@ void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
 
 
 // methods to receive and set new state from client browser 
-void WebserverModule::receiveConnection() {
+void WebserverModule::receiveConnection(JsonDocument inputPayloadJSON) {
 
 }
 
-void WebserverModule::receiveRelayState() {
+void WebserverModule::receiveRelayState(JsonDocument inputPayloadJSON) {
 
 }
 
-void WebserverModule::receiveDateTime() {
+void WebserverModule::receiveDateTime(JsonDocument inputPayloadJSON) {
 
 }
 
-void WebserverModule::receiveConfig() {
+void WebserverModule::receiveConfig(JsonDocument inputPayloadJSON) {
 
 }
 

@@ -8,6 +8,7 @@
 #include "AsyncTCP.h"
 #include "ArduinoJson.h"
 
+#include "RTCNTPlib.h"
 #include "EEPROMConfig.h"
 
 /*
@@ -183,24 +184,24 @@ const String CONFIG_TYPE = "config";
 class WebserverModule {
     public:
         WebserverModule();
-        static void begin(EEPROMConfig* eC);
+        static void begin(EEPROMConfig* eC, RTCNTP* rtcntp);
         static void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type,
             void *arg, uint8_t *data, size_t len);
         static void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
 
         // methods to send ESP32 state to client browser
         static void sendConnection(JsonDocument payloadJSON);
-        static void sendRelayState();
-        static void sendDateTime();
-        static void sendConfig();
+        static void sendRelayState(JsonDocument inputPayloadJSON);
+        static void sendDateTime(JsonDocument inputPayloadJSON);
+        static void sendConfig(JsonDocument inputPayloadJSON);
         // method to handle requests from the client browser 
         static void handleRequest(String type, JsonDocument payloadJSON); 
 
         // methods to receive and set new state from client browser 
-        static void receiveConnection();
-        static void receiveRelayState();
-        static void receiveDateTime();
-        static void receiveConfig();
+        static void receiveConnection(JsonDocument inputPayloadJSON);
+        static void receiveRelayState(JsonDocument inputPayloadJSON);
+        static void receiveDateTime(JsonDocument inputPayloadJSON);
+        static void receiveConfig(JsonDocument inputPayloadJSON);
         // method to handle receiving different kinds of data from the client browser 
         static void receiveData(String type, JsonDocument payloadJSON);
 
@@ -210,6 +211,7 @@ class WebserverModule {
         static JsonDocument _jsonDoc;
         static char _strData[200];
         static EEPROMConfig* _eC;
+        static RTCNTP* _rtcntp;
 };
 
 #endif
