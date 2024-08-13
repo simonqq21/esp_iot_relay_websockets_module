@@ -6,8 +6,9 @@ TimeSlot class methods
 // TimeSlot::TimeSlot(timeSlot& timeslot): _tS(timeslot) {
 // }
 
-// TimeSlot::TimeSlot() {
-// }
+TimeSlot::TimeSlot(timeSlot* timeslot) {
+    _tS = timeslot;
+}
 
 TimeSlot::TimeSlot(timeSlot* timeslot, int index, DateTime now) {
     _tS = timeslot;
@@ -53,6 +54,14 @@ DateTime TimeSlot::getOnStartTime() {
     return _tS->onStartTime;
 }
 
+String TimeSlot::getOnStartTimeISOString() {
+    // 10:55:00Z
+    char buff[11];
+    snprintf(buff, 11, "%02u:%02u:%02uZ", _tS->onStartTime.hour(), 
+        _tS->onStartTime.minute(), _tS->onStartTime.second());
+    return buff;
+}
+
 void TimeSlot::setOnStartTime(int hour, int minute, int second, DateTime now) {
     this->setOnStartTime(DateTime(0,1,1,hour, minute, second), now);
 }
@@ -64,6 +73,14 @@ void TimeSlot::setOnStartTime(DateTime onStartTime, DateTime now) {
 
 DateTime TimeSlot::getOnEndTime() {
     return _tS->onEndTime;
+}
+
+String TimeSlot::getOnEndTimeISOString() {
+    // 10:55:00Z
+    char buff[11];
+    snprintf(buff, 11, "%02u:%02u:%02uZ", _tS->onEndTime.hour(), 
+        _tS->onEndTime.minute(), _tS->onEndTime.second());
+    return buff;
 }
 
 void TimeSlot::setOnEndTime(int hour, int minute, int second, DateTime now) {
@@ -192,6 +209,9 @@ void EEPROMConfig::begin() {
     // compute starting addresses for connection config and main config structs
     _connectionConfigAddr = _eepromAddr;
     _mainConfigAddr = _connectionConfigAddr + sizeof(connectionConfig);
+    for (int i=0;i<NUMBER_OF_TIMESLOTS;i++) {
+        _timeslots[i] = new TimeSlot(&_eC._mainConfig.timeSlots[i]);
+    }
 }
 
 void EEPROMConfig::load(DateTime now) {

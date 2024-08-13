@@ -209,7 +209,7 @@ class WebserverModule {
         static AsyncWebServer _server;
         static AsyncWebSocket _ws;
         static JsonDocument _jsonDoc;
-        static char _strData[200];
+        static char _strData[1250];
         static EEPROMConfig* _eC;
         static RTCNTP* _rtcntp;
 };

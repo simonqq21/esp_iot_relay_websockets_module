@@ -3,7 +3,7 @@
 AsyncWebServer WebserverModule::_server = AsyncWebServer(5555);
 AsyncWebSocket WebserverModule::_ws = AsyncWebSocket("/ws");
 JsonDocument WebserverModule::_jsonDoc;
-char WebserverModule::_strData[200];
+char WebserverModule::_strData[1250];
 EEPROMConfig* WebserverModule::_eC;
 RTCNTP* WebserverModule::_rtcntp;
 
@@ -118,7 +118,24 @@ void WebserverModule::sendConfig(JsonDocument inputPayloadJSON) {
     _jsonDoc[CMD_KEY] = LOAD_CMD;
     _jsonDoc[TYPE_KEY] = CONFIG_TYPE;
     JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
-    // payloadJSON["datetime"] = _rtcntp->getISODateTime();
+        payloadJSON["name"] = _eC->getName();
+        payloadJSON["ntpEnabledSetting"] = _eC->getNTPEnabled();
+        payloadJSON["gmtOffsetSetting"] = _eC->getGMTOffset();
+        payloadJSON["timerEnabledSetting"] = _eC->getTimerEnabled();
+        payloadJSON["ledSetting"] = _eC->getLEDSetting();
+        payloadJSON["relayManualSetting"] = _eC->getRelayManualSetting();
+        JsonArray timeSlotsJSON = payloadJSON["timeSlots"].to<JsonArray>();
+        JsonObject timeSlotJSON;
+        for (int i=0;i<NUMBER_OF_TIMESLOTS;i++) {
+            TimeSlot* curTS = _eC->getTimeSlot(i);
+            timeSlotJSON = timeSlotsJSON.add<JsonObject>();
+            timeSlotJSON["index"] = curTS->getIndex();
+            timeSlotJSON["enabled"] = curTS->getEnabled();
+            timeSlotJSON["onStartTime"] = curTS->getOnStartTimeISOString();
+            timeSlotJSON["onEndTime"] = curTS->getOnEndTimeISOString();
+            timeSlotJSON["durationInSeconds"] = curTS->getDuration();
+        }
+
     serializeJson(_jsonDoc, _strData);
     Serial.printf("serialized JSON = %s\n", _strData);
     _ws.textAll(_strData);
@@ -144,7 +161,6 @@ void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
     }
 }
 
-
 // methods to receive and set new state from client browser 
 void WebserverModule::receiveConnection(JsonDocument inputPayloadJSON) {
 
@@ -164,7 +180,7 @@ void WebserverModule::receiveConfig(JsonDocument inputPayloadJSON) {
 
 void WebserverModule::receiveData(String type, JsonDocument payloadJSON) {
     if (type == CONNECTION_TYPE) {
-
+        receiveConnection(payloadJSON);
     }
     else if (type == RELAY_STATE_TYPE) {
 
