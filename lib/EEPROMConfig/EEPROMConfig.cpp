@@ -71,6 +71,12 @@ void TimeSlot::setOnStartTime(DateTime onStartTime, DateTime now) {
     this->setOnOffFullDateTimes(now, true);
 }
 
+void TimeSlot::setOnStartTimeISOString(String tStr, DateTime now) {
+    int tH, tMin, tS;
+    sscanf(tStr.c_str(), "%02u:%02u:%02uZ", &tH, &tMin, &tS);
+    this->setOnStartTime(tH, tMin, tS, now);
+}
+
 DateTime TimeSlot::getOnEndTime() {
     return _tS->onEndTime;
 }
@@ -92,6 +98,12 @@ void TimeSlot::setOnEndTime(DateTime onEndTime, DateTime now) {
     // when onEndTime is changed, update durationInSeconds.
     this->setOnOffFullDateTimes(now, true);
     this->updateFromEndTimeToDuration();
+}
+
+void TimeSlot::setOnEndTimeISOString(String tStr, DateTime now) {
+    int tH, tMin, tS;
+    sscanf(tStr.c_str(), "%02u:%02u:%02uZ", &tH, &tMin, &tS);
+    this->setOnEndTime(tH, tMin, tS, now);
 }
 
 void TimeSlot::updateFromEndTimeToDuration() {
