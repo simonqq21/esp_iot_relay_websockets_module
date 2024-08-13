@@ -71,7 +71,6 @@ from ESP32 to browser
         relayManualSetting: bool,
         timeSlots[]: timeSlot[] {
             index: int,
-            initialized: int,
             enabled: bool,
             onStartTime: string (ISO datetime),
             onEndTime: string (ISO datetime),
@@ -155,13 +154,11 @@ from browser to ESP32
         gmtOffsetSetting: int, 
         timerEnabledSetting: bool,
         ledSetting: int,
-        relayManualSetting: bool,
         timeSlots[]: timeSlot[] {
             index: int,
-            initialized: int,
             enabled: bool,
-            onStartTime: string (ISO datetime),
-            onEndTime: string (ISO datetime),
+            onStartTime: string (ISO time),
+            onEndTime: string (ISO time),
             durationInSeconds: int,
         },
     },

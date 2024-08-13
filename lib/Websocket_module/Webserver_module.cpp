@@ -133,7 +133,7 @@ void WebserverModule::sendConfig(JsonDocument inputPayloadJSON) {
             timeSlotJSON["enabled"] = curTS->getEnabled();
             timeSlotJSON["onStartTime"] = curTS->getOnStartTimeISOString();
             timeSlotJSON["onEndTime"] = curTS->getOnEndTimeISOString();
-            timeSlotJSON["durationInSeconds"] = curTS->getDuration();
+            // timeSlotJSON["durationInSeconds"] = curTS->getDuration();
         }
 
     serializeJson(_jsonDoc, _strData);
@@ -157,25 +157,49 @@ void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
         sendConfig(payloadJSON);
     }
     else {
-        
+        _ws.textAll("Invalid request");
     }
 }
 
 // methods to receive and set new state from client browser 
 void WebserverModule::receiveConnection(JsonDocument inputPayloadJSON) {
-
+    _eC->setSSID(inputPayloadJSON["ssid"]);
+    _eC->setPassword(inputPayloadJSON["pass"]);
+    int ipAddrOctets[4];
+    sscanf(inputPayloadJSON["ip"], "%d.%d.%d.%d", 
+        &ipAddrOctets[0], &ipAddrOctets[1], &ipAddrOctets[2], &ipAddrOctets[3]);
+    _eC->setIPAddress(IPAddress(ipAddrOctets[0], ipAddrOctets[1], ipAddrOctets[2], ipAddrOctets[3]));
+    _eC->setPort(inputPayloadJSON["port"]);
+    // _eC->print();
+    Serial.println("saved connection");
 }
 
 void WebserverModule::receiveRelayState(JsonDocument inputPayloadJSON) {
-
+    _eC->setRelayManualSetting(inputPayloadJSON["relay_state"]);
+    _eC->print();
+    Serial.println("saved relay manual state");
 }
 
 void WebserverModule::receiveDateTime(JsonDocument inputPayloadJSON) {
-
+    _rtcntp->setISODateTime(inputPayloadJSON["datetime"]);
+    Serial.println("saved datetime");
 }
 
 void WebserverModule::receiveConfig(JsonDocument inputPayloadJSON) {
-
+    _eC->setName(inputPayloadJSON[""]);
+    _eC->setNTPEnabled(inputPayloadJSON[""]);
+    _eC->setGMTOffset(inputPayloadJSON[""]);
+    _eC->setTimerEnabled(inputPayloadJSON[""]);
+    _eC->setLEDSetting(inputPayloadJSON[""]);
+    for (int i=0;i<NUMBER_OF_TIMESLOTS;i++) {
+        _eC->getTimeSlot(i)->setIndex(inputPayloadJSON["timeSlots"][i]["index"]);
+        _eC->getTimeSlot(i)->setEnabled(inputPayloadJSON["timeSlots"][i]["enabled"]);
+        _eC->getTimeSlot(i)->setOnStartTimeISOString(inputPayloadJSON["timeSlots"][i]["onStartTime"], 
+            _rtcntp->getRTCTime());
+        _eC->getTimeSlot(i)->setOnEndTimeISOString(inputPayloadJSON["timeSlots"][i]["onEndTime"], 
+            _rtcntp->getRTCTime());
+    }
+    Serial.println("saved config");
 }
 
 void WebserverModule::receiveData(String type, JsonDocument payloadJSON) {
@@ -183,16 +207,16 @@ void WebserverModule::receiveData(String type, JsonDocument payloadJSON) {
         receiveConnection(payloadJSON);
     }
     else if (type == RELAY_STATE_TYPE) {
-
+        receiveRelayState(payloadJSON);
     }
     else if (type == DATETIME_TYPE) {
-
+        receiveDateTime(payloadJSON);
     }
     else if (type == CONFIG_TYPE) {
-
+        receiveConfig(payloadJSON);
     }
     else {
-
+        _ws.textAll("Invalid save");
     }
 }
 
