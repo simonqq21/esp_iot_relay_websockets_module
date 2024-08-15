@@ -74,7 +74,6 @@ from ESP32 to browser
             enabled: bool,
             onStartTime: string (ISO datetime),
             onEndTime: string (ISO datetime),
-            durationInSeconds: int,
         },
     },
 }
@@ -159,7 +158,6 @@ from browser to ESP32
             enabled: bool,
             onStartTime: string (ISO time),
             onEndTime: string (ISO time),
-            durationInSeconds: int,
         },
     },
 }

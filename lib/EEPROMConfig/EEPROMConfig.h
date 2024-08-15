@@ -61,7 +61,7 @@ struct eepromConfig {
 
 class TimeSlot {
     public:
-        TimeSlot(timeSlot* timeslot);
+        TimeSlot(timeSlot* timeslot, int index);
         TimeSlot(timeSlot *timeslot, int index,  DateTime now);
         void print();
         // TimeSlot(timeSlot &timeslot);
