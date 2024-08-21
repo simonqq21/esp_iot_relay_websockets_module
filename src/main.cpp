@@ -36,13 +36,13 @@ void setup() {
   // datetime
   // rtcntp.setISODateTime("2024/01/02T10:00:00Z");
   // relay state 
-  eC.setRelayManualSetting(true);
+  eC.setRelayManualSetting(false);
   // timing configuration
   eC.setName("basil-esp32");
   eC.setNTPEnabled(true);
   eC.setLEDSetting(2);
   eC.setGMTOffset(+8);
-  eC.setTimerEnabled(true);
+  eC.setTimerEnabled(false);
   timeslot = eC.getTimeSlot(2);
   timeslot->setEnabled(true);
   timeslot->setOnStartTimeISOString("08:00:00Z", now);

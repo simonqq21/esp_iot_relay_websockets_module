@@ -106,6 +106,7 @@ void WebserverModule::sendDateTime(JsonDocument inputPayloadJSON) {
     _jsonDoc.clear();
     _jsonDoc[CMD_KEY] = LOAD_CMD;
     _jsonDoc[TYPE_KEY] = DATETIME_TYPE;
+    _rtcntp->getRTCTime();
     JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
     payloadJSON["datetime"] = _rtcntp->getISODateTime();
     serializeJson(_jsonDoc, _strData);
@@ -170,13 +171,13 @@ void WebserverModule::receiveConnection(JsonDocument inputPayloadJSON) {
         &ipAddrOctets[0], &ipAddrOctets[1], &ipAddrOctets[2], &ipAddrOctets[3]);
     _eC->setIPAddress(IPAddress(ipAddrOctets[0], ipAddrOctets[1], ipAddrOctets[2], ipAddrOctets[3]));
     _eC->setPort(inputPayloadJSON["port"]);
-    // _eC->print();
+    _eC->saveConnectionConfig();
     Serial.println("saved connection");
 }
 
 void WebserverModule::receiveRelayState(JsonDocument inputPayloadJSON) {
     _eC->setRelayManualSetting(inputPayloadJSON["relay_state"]);
-    _eC->print();
+    _eC->saveMainConfig();
     Serial.println("saved relay manual state");
 }
 
@@ -186,11 +187,11 @@ void WebserverModule::receiveDateTime(JsonDocument inputPayloadJSON) {
 }
 
 void WebserverModule::receiveConfig(JsonDocument inputPayloadJSON) {
-    _eC->setName(inputPayloadJSON[""]);
-    _eC->setNTPEnabled(inputPayloadJSON[""]);
-    _eC->setGMTOffset(inputPayloadJSON[""]);
-    _eC->setTimerEnabled(inputPayloadJSON[""]);
-    _eC->setLEDSetting(inputPayloadJSON[""]);
+    _eC->setName(inputPayloadJSON["name"]);
+    _eC->setNTPEnabled(inputPayloadJSON["ntpEnabledSetting"]);
+    _eC->setGMTOffset(inputPayloadJSON["gmtOffsetSetting"]);
+    _eC->setTimerEnabled(inputPayloadJSON["timerEnabledSetting"]);
+    _eC->setLEDSetting(inputPayloadJSON["ledSetting"]);
     for (int i=0;i<NUMBER_OF_TIMESLOTS;i++) {
         _eC->getTimeSlot(i)->setIndex(inputPayloadJSON["timeSlots"][i]["index"]);
         _eC->getTimeSlot(i)->setEnabled(inputPayloadJSON["timeSlots"][i]["enabled"]);
@@ -199,6 +200,7 @@ void WebserverModule::receiveConfig(JsonDocument inputPayloadJSON) {
         _eC->getTimeSlot(i)->setOnEndTimeISOString(inputPayloadJSON["timeSlots"][i]["onEndTime"], 
             _rtcntp->getRTCTime());
     }
+    _eC->saveMainConfig();
     Serial.println("saved config");
 }
 
