@@ -17,6 +17,23 @@ IO module
 RTC module
 EEPROM configuration module 
 
+Operation:
+esp32 will attempt to connect to WiFi with the SSID 
+and password saved on the EEPROM. If the credentials 
+are incorrect, then it will start a soft AP with a 
+static IP address that the client device can connect 
+to. The client device loads up the wifi manager
+webpage, which lists down the available wifi networks
+and refreshes it every 5 seconds. When the user clicks 
+on a wifi ssid div, it will then ask you for the 
+password, IP address index, and port. Upon submission
+of the connection details, the ESP32 will attempt to 
+reconnect to the wifi with the new credentials. If it
+succeeds, it will continue operating normally. But if the 
+wifi fails to connect for any reason, either out of range,
+router turned off, or wrong credentials, it will restart
+its soft AP so it can continue to be used standalone or 
+be reconfigured to connect somewhere else. 
 
 messages:
 Standard contents of every JSON payload:
