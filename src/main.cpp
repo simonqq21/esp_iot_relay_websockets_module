@@ -2,6 +2,7 @@
 #include "Webserver_module.h"
 
 WebserverModule wsMod;
+
 IPAddress localIP; 
 IPAddress gateway;
 IPAddress subnet(255,255,255,0);
@@ -15,15 +16,20 @@ void setup() {
   DateTime now;
   now = DateTime(2024, 8,15,22,0,0);
   Serial.begin(115200);
+
   WiFi.begin("QUE-STARLINK", "Quefamily01259");
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(500);
-  }
+  // WiFi.begin("", "");
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   Serial.print(".");
+  //   delay(500);
+  // }
+  delay(3000);
   Serial.printf("Connected to %s\n", WiFi.SSID());
   localIP = WiFi.localIP();
   localIP[3] = 70;
   WiFi.config(localIP, gateway, subnet);
+  Serial.println(WiFi.localIP());
+
   eC.begin();
   rtcntp.begin();
   rtcntp.setGMTOffset(8);
@@ -50,6 +56,6 @@ void setup() {
 }
 
 void loop() {
-
+  wsMod.checkWiFiStatusLoop();
 }
 

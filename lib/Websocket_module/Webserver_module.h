@@ -46,6 +46,18 @@ Standard contents of every JSON payload:
 
 
 from ESP32 to browser
+- ESP32 send list of wifi hotspots to the browser
+{
+    cmd: "load",
+    type: "wifis",
+    payload: {
+        wifis: [] {
+            ssid: string, 
+            RSSI: int,
+            security: string,
+        }
+    },
+}
 - ESP32 send connection details to browser
 {
     cmd: "load",
@@ -98,6 +110,14 @@ from ESP32 to browser
 
 
 from browser to ESP32
+- Browser request list of wifi hotspots from ESP32 
+{
+    cmd: "request",
+    type: "wifis",
+    payload: {
+    },
+}
+
 - Browser request connection details from ESP32
 {
     cmd: "request",
@@ -197,6 +217,12 @@ class WebserverModule {
     public:
         WebserverModule();
         static void begin(EEPROMConfig* eC, RTCNTP* rtcntp);
+        
+        // wifi connection methods
+        static void scanWiFi();
+        static void checkWiFiStatusLoop();
+
+        // websocket methods
         static void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type,
             void *arg, uint8_t *data, size_t len);
         static void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
@@ -224,6 +250,7 @@ class WebserverModule {
         static char _strData[1250];
         static EEPROMConfig* _eC;
         static RTCNTP* _rtcntp;
+
 };
 
 #endif

@@ -23,6 +23,37 @@ void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp) {
     _server.addHandler(&_ws);
     _server.begin();
     Serial.println("initialized ws");
+
+    // start serving webpages
+    AsyncWebHandler testHandler = _server.on("/test", HTTP_GET, [](AsyncWebServerRequest* request) {
+        // request->send(200, "hhelloworld");
+        request->send(200, "text/plain", "Hhhelloworld");
+    });
+}
+
+/*
+this method is called in the void loop 
+*/
+void WebserverModule::checkWiFiStatusLoop() {
+    IPAddress apIP;
+    while(WiFi.status() != WL_CONNECTED) {
+        Serial.printf("wifi status = %d\n", WiFi.status());
+        yield();
+        delay(1000);
+        switch (WiFi.status()) {
+            // connected successfully
+            case WL_CONNECTED:
+                break;
+            // if not connected due to unavailable SSID or wrong credentials
+            default:
+                if (apIP[0] < 1) {
+                    WiFi.softAP("ESP32_wifi_manager");
+                    apIP = WiFi.softAPIP();
+                }
+                
+                Serial.println(apIP);
+        }
+    }
 }
 
 void WebserverModule::handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
