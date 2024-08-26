@@ -36,6 +36,11 @@ void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp) {
 void WebserverModule::scanWiFi() {
     String ssid, security;
     int rssi;
+    _jsonDoc.clear();
+    _jsonDoc[CMD_KEY] = LOAD_CMD;
+    _jsonDoc[TYPE_KEY] = "wifis";
+    JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
+    JsonArray wifisJSON = payloadJSON["wifis"].to<JsonArray>();
 
     Serial.println("Scanning wifi...");
     int n = WiFi.scanNetworks();
@@ -80,9 +85,17 @@ void WebserverModule::scanWiFi() {
                     security = "unknown";
             }
             Serial.printf("%d. SSID=%-32.32s, RSSI=%2d, security=%s\n", i, ssid, rssi, security);
+            JsonObject wifiJSON;
+            wifiJSON = wifisJSON.add<JsonObject>();
+            wifiJSON["ssid"] = ssid;
+            wifiJSON["rssi"] = rssi;
+            wifiJSON["security"] = security;
         }
     }
     WiFi.scanDelete();
+    serializeJson(_jsonDoc, _strData);
+    Serial.printf("serialized JSON = %s\n", _strData);
+    _ws.textAll(_strData);
     delay(5000);
 }
 

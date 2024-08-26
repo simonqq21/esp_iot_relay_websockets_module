@@ -53,7 +53,7 @@ from ESP32 to browser
     payload: {
         wifis: [] {
             ssid: string, 
-            RSSI: int,
+            rssi: int,
             security: string,
         }
     },
