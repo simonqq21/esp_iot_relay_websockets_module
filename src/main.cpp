@@ -53,9 +53,12 @@ void setup() {
   timeslot->setEnabled(true);
   timeslot->setOnStartTimeISOString("08:00:00Z", now);
   timeslot->setOnStartTimeISOString("12:00:00Z", now);
+
+  // WiFi.disconnect();
 }
 
 void loop() {
-  wsMod.checkWiFiStatusLoop();
+  // wsMod.checkWiFiStatusLoop();
+  wsMod.scanWiFi();
 }
 

@@ -32,6 +32,61 @@ void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp) {
 }
 
 /*
+*/
+void WebserverModule::scanWiFi() {
+    String ssid, security;
+    int rssi;
+
+    Serial.println("Scanning wifi...");
+    int n = WiFi.scanNetworks();
+    Serial.println("scan done");
+    if (n < 1) {
+        Serial.println("no wifis found.");
+    }
+    else {
+        Serial.printf("%d networks found:\n", n);
+        for (int i=0;i<n;i++) {
+            ssid = WiFi.SSID(i).c_str();
+            rssi = WiFi.RSSI(i);
+            switch (WiFi.encryptionType(i)) {
+                case WIFI_AUTH_OPEN:
+                    security = "open";
+                    break;
+                case WIFI_AUTH_WEP:
+                    security = "wep";
+                    break;
+                case WIFI_AUTH_WPA_PSK:
+                    security = "wpa";
+                    break;
+                case WIFI_AUTH_WPA_WPA2_PSK:
+                    security = "wpa_wpa2";
+                    break;
+                case WIFI_AUTH_WPA2_PSK:
+                    security = "wpa2";
+                    break;
+                case WIFI_AUTH_WPA2_ENTERPRISE:
+                    security = "wpa2_ent";
+                    break;
+                case WIFI_AUTH_WPA2_WPA3_PSK:
+                    security = "wpa2_wpa3";
+                    break;
+                case WIFI_AUTH_WPA3_PSK:
+                    security = "wpa3";
+                    break;
+                case WIFI_AUTH_WAPI_PSK:
+                    security = "wapi";
+                    break;
+                default:
+                    security = "unknown";
+            }
+            Serial.printf("%d. SSID=%-32.32s, RSSI=%2d, security=%s\n", i, ssid, rssi, security);
+        }
+    }
+    WiFi.scanDelete();
+    delay(5000);
+}
+
+/*
 this method is called in the void loop 
 */
 void WebserverModule::checkWiFiStatusLoop() {
@@ -50,7 +105,6 @@ void WebserverModule::checkWiFiStatusLoop() {
                     WiFi.softAP("ESP32_wifi_manager");
                     apIP = WiFi.softAPIP();
                 }
-                
                 Serial.println(apIP);
         }
     }
