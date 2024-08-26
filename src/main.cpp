@@ -59,6 +59,6 @@ void setup() {
 
 void loop() {
   // wsMod.checkWiFiStatusLoop();
-  wsMod.scanWiFi();
+  wsMod.sendWiFiScanResults();
 }
 

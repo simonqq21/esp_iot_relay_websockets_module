@@ -33,70 +33,74 @@ void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp) {
 
 /*
 */
-void WebserverModule::scanWiFi() {
+void WebserverModule::scanWiFi(JsonDocument inputPayloadJSON) {
+    Serial.println("Scanning wifi...");
+    int n = WiFi.scanNetworks(true);
+}
+
+void WebserverModule::sendWiFiScanResults() {
     String ssid, security;
     int rssi;
-    _jsonDoc.clear();
-    _jsonDoc[CMD_KEY] = LOAD_CMD;
-    _jsonDoc[TYPE_KEY] = "wifis";
-    JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
-    JsonArray wifisJSON = payloadJSON["wifis"].to<JsonArray>();
-
-    Serial.println("Scanning wifi...");
-    int n = WiFi.scanNetworks();
-    Serial.println("scan done");
-    if (n < 1) {
-        Serial.println("no wifis found.");
-    }
-    else {
-        Serial.printf("%d networks found:\n", n);
-        for (int i=0;i<n;i++) {
-            ssid = WiFi.SSID(i).c_str();
-            rssi = WiFi.RSSI(i);
-            switch (WiFi.encryptionType(i)) {
-                case WIFI_AUTH_OPEN:
-                    security = "open";
-                    break;
-                case WIFI_AUTH_WEP:
-                    security = "wep";
-                    break;
-                case WIFI_AUTH_WPA_PSK:
-                    security = "wpa";
-                    break;
-                case WIFI_AUTH_WPA_WPA2_PSK:
-                    security = "wpa_wpa2";
-                    break;
-                case WIFI_AUTH_WPA2_PSK:
-                    security = "wpa2";
-                    break;
-                case WIFI_AUTH_WPA2_ENTERPRISE:
-                    security = "wpa2_ent";
-                    break;
-                case WIFI_AUTH_WPA2_WPA3_PSK:
-                    security = "wpa2_wpa3";
-                    break;
-                case WIFI_AUTH_WPA3_PSK:
-                    security = "wpa3";
-                    break;
-                case WIFI_AUTH_WAPI_PSK:
-                    security = "wapi";
-                    break;
-                default:
-                    security = "unknown";
-            }
-            Serial.printf("%d. SSID=%-32.32s, RSSI=%2d, security=%s\n", i, ssid, rssi, security);
-            JsonObject wifiJSON;
-            wifiJSON = wifisJSON.add<JsonObject>();
-            wifiJSON["ssid"] = ssid;
-            wifiJSON["rssi"] = rssi;
-            wifiJSON["security"] = security;
+    int n = WiFi.scanComplete();
+    if (n > -1) {
+         _jsonDoc.clear();
+        _jsonDoc[CMD_KEY] = LOAD_CMD;
+        _jsonDoc[TYPE_KEY] = WIFIS_TYPE;
+        JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
+        JsonArray wifisJSON = payloadJSON[WIFIS_TYPE].to<JsonArray>();
+        Serial.println("scan done");
+        if (n < 1) {
+            Serial.println("no wifis found.");
         }
+        else {
+            Serial.printf("%d networks found:\n", n);
+            for (int i=0;i<n;i++) {
+                ssid = WiFi.SSID(i).c_str();
+                rssi = WiFi.RSSI(i);
+                switch (WiFi.encryptionType(i)) {
+                    case WIFI_AUTH_OPEN:
+                        security = "open";
+                        break;
+                    case WIFI_AUTH_WEP:
+                        security = "wep";
+                        break;
+                    case WIFI_AUTH_WPA_PSK:
+                        security = "wpa";
+                        break;
+                    case WIFI_AUTH_WPA_WPA2_PSK:
+                        security = "wpa_wpa2";
+                        break;
+                    case WIFI_AUTH_WPA2_PSK:
+                        security = "wpa2";
+                        break;
+                    case WIFI_AUTH_WPA2_ENTERPRISE:
+                        security = "wpa2_ent";
+                        break;
+                    case WIFI_AUTH_WPA2_WPA3_PSK:
+                        security = "wpa2_wpa3";
+                        break;
+                    case WIFI_AUTH_WPA3_PSK:
+                        security = "wpa3";
+                        break;
+                    case WIFI_AUTH_WAPI_PSK:
+                        security = "wapi";
+                        break;
+                    default:
+                        security = "unknown";
+                }
+                Serial.printf("%d. SSID=%-32.32s, RSSI=%2d, security=%s\n", i, ssid, rssi, security);
+                JsonObject wifiJSON;
+                wifiJSON = wifisJSON.add<JsonObject>();
+                wifiJSON["ssid"] = ssid;
+                wifiJSON["rssi"] = rssi;
+                wifiJSON["security"] = security;
+            }
+        }
+        WiFi.scanDelete();
+        serializeJson(_jsonDoc, _strData);
+        Serial.printf("serialized JSON = %s\n", _strData);
+        _ws.textAll(_strData);
     }
-    WiFi.scanDelete();
-    serializeJson(_jsonDoc, _strData);
-    Serial.printf("serialized JSON = %s\n", _strData);
-    _ws.textAll(_strData);
-    delay(5000);
 }
 
 /*
@@ -254,6 +258,9 @@ void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
     }
     else if (type == CONFIG_TYPE) {
         sendConfig(payloadJSON);
+    }
+    else if (type == WIFIS_TYPE) {
+        scanWiFi(payloadJSON);
     }
     else {
         _ws.textAll("Invalid request");

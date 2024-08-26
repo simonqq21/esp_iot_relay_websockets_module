@@ -212,6 +212,7 @@ const String CONNECTION_TYPE = "connection";
 const String RELAY_STATE_TYPE = "relay_state"; 
 const String DATETIME_TYPE = "datetime"; 
 const String CONFIG_TYPE = "config";
+const String WIFIS_TYPE= "wifis";
 
 class WebserverModule {
     public:
@@ -219,7 +220,8 @@ class WebserverModule {
         static void begin(EEPROMConfig* eC, RTCNTP* rtcntp);
         
         // wifi connection methods
-        static void scanWiFi();
+        static void scanWiFi(JsonDocument inputPayloadJSON = JsonDocument());
+        static void sendWiFiScanResults();
         static void checkWiFiStatusLoop();
 
         // websocket methods
