@@ -6,6 +6,7 @@ JsonDocument WebserverModule::_jsonDoc;
 char WebserverModule::_strData[1250];
 EEPROMConfig* WebserverModule::_eC;
 RTCNTP* WebserverModule::_rtcntp;
+IPAddress  WebserverModule::_apIP;
 
 // AsyncWebServer _server = AsyncWebServer(5555);
 // AsyncWebSocket _ws = AsyncWebSocket("/ws");
@@ -17,8 +18,11 @@ WebserverModule::WebserverModule() {
 }
 
 void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp) {
+    WiFi.mode(WIFI_AP_STA);
     _eC = eC;
     _rtcntp = rtcntp;
+
+    // start websockets and webserver
     _ws.onEvent(onEvent);
     _server.addHandler(&_ws);
     _server.begin();
@@ -33,6 +37,29 @@ void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp) {
 
 /*
 */
+void WebserverModule::connect() {
+    Serial.println("Connecting to wifi");
+    // attempt to connect to wifi 
+    IPAddress localIP;
+    IPAddress gateway;
+    IPAddress subnet(255,255,255,0);
+    IPAddress dns(8,8,8,8);
+    Serial.printf("%s, %s\n", _eC->getSSID().c_str(), _eC->getPassword().c_str());
+    delay(1000);
+    WiFi.mode(WIFI_MODE_AP);
+    WiFi.begin(_eC->getSSID().c_str(), _eC->getPassword().c_str());
+    delay(3000);
+    // Serial.printf("Connected to %s\n", WiFi.SSID());
+    Serial.printf("wifi status = %d\n", WiFi.status());
+    localIP = WiFi.localIP();
+    Serial.println(WiFi.localIP());
+    localIP[3] = _eC->getIPAddressIndex();
+    WiFi.config(localIP, gateway, subnet);
+    Serial.println(WiFi.localIP());
+}
+
+/*
+*/
 void WebserverModule::scanWiFi(JsonDocument inputPayloadJSON) {
     Serial.println("Scanning wifi...");
     int n = WiFi.scanNetworks(true);
@@ -42,6 +69,9 @@ void WebserverModule::sendWiFiScanResults() {
     String ssid, security;
     int rssi;
     int n = WiFi.scanComplete();
+    if (n > -2) {
+        Serial.println(n);
+    }
     if (n > -1) {
          _jsonDoc.clear();
         _jsonDoc[CMD_KEY] = LOAD_CMD;
@@ -107,23 +137,24 @@ void WebserverModule::sendWiFiScanResults() {
 this method is called in the void loop 
 */
 void WebserverModule::checkWiFiStatusLoop() {
-    IPAddress apIP;
-    while(WiFi.status() != WL_CONNECTED) {
-        Serial.printf("wifi status = %d\n", WiFi.status());
-        yield();
-        delay(1000);
-        switch (WiFi.status()) {
-            // connected successfully
-            case WL_CONNECTED:
-                break;
-            // if not connected due to unavailable SSID or wrong credentials
-            default:
-                if (apIP[0] < 1) {
-                    WiFi.softAP("ESP32_wifi_manager");
-                    apIP = WiFi.softAPIP();
-                }
-                Serial.println(apIP);
-        }
+    // Serial.printf("wifi status = %d\n", WiFi.status());
+    yield();
+    switch (WiFi.status()) {
+        // connected successfully
+        case WL_CONNECTED:
+            break;
+        // if not connected due to unavailable SSID or wrong credentials
+        default:
+            if (_apIP[0] < 1) {
+                WiFi.softAP("ESP32_wifi_manager");
+                WiFi.mode(WIFI_MODE_AP);
+                IPAddress apIP = IPAddress(192, 168, 4, 1);
+                IPAddress apSubnet = IPAddress(255,255,255,0);
+                WiFi.softAPConfig(apIP, apIP, apSubnet);
+                _apIP = WiFi.softAPIP();
+                Serial.println("started softAP");
+            }
+            // Serial.println(_apIP);
     }
 }
 
@@ -186,7 +217,7 @@ void WebserverModule::sendConnection(JsonDocument inputPayloadJSON) {
     _jsonDoc[TYPE_KEY] = CONNECTION_TYPE;
     JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
     payloadJSON["ssid"] = _eC->getSSID();
-    payloadJSON["ip"] = _eC->getIPAddress();
+    payloadJSON["ipIndex"] = _eC->getIPAddressIndex();
     payloadJSON["port"] = _eC->getPort();
     serializeJson(_jsonDoc, _strData);
     Serial.printf("serialized JSON = %s\n", _strData);
@@ -268,16 +299,15 @@ void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
 }
 
 // methods to receive and set new state from client browser 
+// also attempt to reconnect to wifi after saving the credentials.
 void WebserverModule::receiveConnection(JsonDocument inputPayloadJSON) {
     _eC->setSSID(inputPayloadJSON["ssid"]);
     _eC->setPassword(inputPayloadJSON["pass"]);
-    int ipAddrOctets[4];
-    sscanf(inputPayloadJSON["ip"], "%d.%d.%d.%d", 
-        &ipAddrOctets[0], &ipAddrOctets[1], &ipAddrOctets[2], &ipAddrOctets[3]);
-    _eC->setIPAddress(IPAddress(ipAddrOctets[0], ipAddrOctets[1], ipAddrOctets[2], ipAddrOctets[3]));
+    _eC->setIPAddressIndex(inputPayloadJSON["ipIndex"]);
     _eC->setPort(inputPayloadJSON["port"]);
     _eC->saveConnectionConfig();
     Serial.println("saved connection");
+    ESP.restart();
 }
 
 void WebserverModule::receiveRelayState(JsonDocument inputPayloadJSON) {

@@ -38,7 +38,7 @@ struct timeSlot {
 };
 
 struct connectionConfig {
-    IPAddress ipAddrSetting;
+    int ipAddrIndexSetting;
     int portSetting;
     char ssidSetting[SSID_LENGTH];
     char passwordSetting[PASS_LENGTH];
@@ -103,8 +103,8 @@ class EEPROMConfig {
         void save();
         void saveConnectionConfig();
         void saveMainConfig();
-        IPAddress getIPAddress();
-        void setIPAddress(IPAddress ip);
+        int getIPAddressIndex();
+        void setIPAddressIndex(int ipIndex=2);
         int getPort();
         void setPort(int port);
         String getSSID();

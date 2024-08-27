@@ -64,7 +64,7 @@ from ESP32 to browser
     type: "connection",
     payload: {
         ssid: string,
-        ip: string,
+        ipIndex: int,
         port: int,
     },
 }
@@ -157,7 +157,7 @@ from browser to ESP32
     payload: {
         ssid: string,
         pass: string,
-        ip: string,
+        ipIndex: int,
         port: int,
     },
 }
@@ -220,6 +220,7 @@ class WebserverModule {
         static void begin(EEPROMConfig* eC, RTCNTP* rtcntp);
         
         // wifi connection methods
+        static void connect();
         static void scanWiFi(JsonDocument inputPayloadJSON = JsonDocument());
         static void sendWiFiScanResults();
         static void checkWiFiStatusLoop();
@@ -252,6 +253,7 @@ class WebserverModule {
         static char _strData[1250];
         static EEPROMConfig* _eC;
         static RTCNTP* _rtcntp;
+        static IPAddress _apIP;
 
 };
 

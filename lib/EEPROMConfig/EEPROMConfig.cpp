@@ -11,10 +11,7 @@ TimeSlot::TimeSlot(timeSlot* timeslot, int index) {
     this->setIndex(index);
 }
 
-TimeSlot::TimeSlot(timeSlot* timeslot, int index, DateTime now) {
-    // _tS = timeslot;
-    // this->setIndex(index);
-    TimeSlot(timeslot, index);
+TimeSlot::TimeSlot(timeSlot* timeslot, int index, DateTime now): TimeSlot(timeslot, index) {
     if (_tS->initialized != 0) {
         _tS->enabled = false;
         _tS->initialized=0;
@@ -196,10 +193,7 @@ EEPROMConfig::EEPROMConfig(unsigned int eepromAddr) {
 
 void EEPROMConfig::print() {
     Serial.printf("EEPROMConfig\n");
-    Serial.printf("ipAddrSetting=%d.%d.%d.%d\n", this->getIPAddress()[0], 
-        this->getIPAddress()[1], 
-        this->getIPAddress()[2], 
-        this->getIPAddress()[3]);
+    Serial.printf("ipAddrIndexSetting=%d\n", this->getIPAddressIndex());
     Serial.printf("portSetting=%d\n", this->getPort());
     Serial.printf("ssidSetting=%s\n", this->getSSID());
     Serial.printf("passwordSetting=%s\n", this->getPassword());
@@ -252,12 +246,12 @@ void EEPROMConfig::saveMainConfig() {
     EEPROM.commit();
 }
 
-IPAddress EEPROMConfig::getIPAddress() {
-    return _eC._connectionConfig.ipAddrSetting;
+int EEPROMConfig::getIPAddressIndex() {
+    return _eC._connectionConfig.ipAddrIndexSetting;
 }
 
-void EEPROMConfig::setIPAddress(IPAddress ip) {
-    _eC._connectionConfig.ipAddrSetting=ip;
+void EEPROMConfig::setIPAddressIndex(int ipIndex) {
+    _eC._connectionConfig.ipAddrIndexSetting=ipIndex;
 }
 
 int EEPROMConfig::getPort() {

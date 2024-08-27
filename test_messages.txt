@@ -1,0 +1,60 @@
+{
+    cmd: "save",
+    type: "connection",
+    payload: {
+        ssid: "galaxy2",
+        pass: "simonque",
+        ipIndex: 70,
+        port: 5555,
+    },
+}
+{
+    cmd: "save",
+    type: "connection",
+    payload: {
+        ssid: "QUE-STARLINK",
+        pass: "Quefamily01259",
+        ipIndex: 70,
+        port: 5555,
+    },
+}
+{
+    cmd: "save",
+    type: "connection",
+    payload: {
+        ssid: "QUE-STARLINK",
+        pass: "Quefamil1259",
+        ipIndex: 70,
+        port: 5555,
+    },
+}
+{
+    cmd: "request",
+    type: "wifis",
+    payload: {
+    },
+}
+{
+    cmd: "request",
+    type: "connection",
+    payload: {
+    },
+}
+{
+    cmd: "request",
+    type: "relay_state",
+    payload: {
+    },
+}
+{
+    cmd: "request",
+    type: "datetime",
+    payload: {
+    },
+}
+{
+    cmd: "request",
+    type: "config",
+    payload: {
+    },
+}
