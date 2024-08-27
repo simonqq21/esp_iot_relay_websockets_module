@@ -18,7 +18,6 @@ WebserverModule::WebserverModule() {
 }
 
 void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp) {
-    WiFi.mode(WIFI_AP_STA);
     _eC = eC;
     _rtcntp = rtcntp;
 
@@ -38,15 +37,24 @@ void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp) {
 /*
 */
 void WebserverModule::connect() {
+    Serial.println("Scanning wifi...");
+    WiFi.mode(WIFI_STA);
+    // WiFi.scanDelete();
+    int n = WiFi.scanNetworks(false);
+    // int n2 = WiFi.scanComplete();
+    Serial.printf("%d networks found.\n", n);
+    // Serial.printf("%d networks found.\n", n2);
     Serial.println("Connecting to wifi");
     // attempt to connect to wifi 
     IPAddress localIP;
     IPAddress gateway;
     IPAddress subnet(255,255,255,0);
     IPAddress dns(8,8,8,8);
-    Serial.printf("%s, %s\n", _eC->getSSID().c_str(), _eC->getPassword().c_str());
+    // Serial.printf("%s, %s\n", _eC->getSSID().c_str(), _eC->getPassword().c_str());
+    WiFi.enableAP(false);
+    WiFi.softAPdisconnect(true);
     delay(1000);
-    WiFi.mode(WIFI_MODE_AP);
+    WiFi.mode(WIFI_MODE_STA);
     WiFi.begin(_eC->getSSID().c_str(), _eC->getPassword().c_str());
     delay(3000);
     // Serial.printf("Connected to %s\n", WiFi.SSID());
@@ -62,7 +70,7 @@ void WebserverModule::connect() {
 */
 void WebserverModule::scanWiFi(JsonDocument inputPayloadJSON) {
     Serial.println("Scanning wifi...");
-    int n = WiFi.scanNetworks(true);
+    // int n = WiFi.scanNetworks(true);
 }
 
 void WebserverModule::sendWiFiScanResults() {
@@ -126,7 +134,7 @@ void WebserverModule::sendWiFiScanResults() {
                 wifiJSON["security"] = security;
             }
         }
-        WiFi.scanDelete();
+        // WiFi.scanDelete();
         serializeJson(_jsonDoc, _strData);
         Serial.printf("serialized JSON = %s\n", _strData);
         _ws.textAll(_strData);
@@ -146,8 +154,8 @@ void WebserverModule::checkWiFiStatusLoop() {
         // if not connected due to unavailable SSID or wrong credentials
         default:
             if (_apIP[0] < 1) {
-                WiFi.softAP("ESP32_wifi_manager");
                 WiFi.mode(WIFI_MODE_AP);
+                WiFi.softAP("ESP32_wifi_manager");
                 IPAddress apIP = IPAddress(192, 168, 4, 1);
                 IPAddress apSubnet = IPAddress(255,255,255,0);
                 WiFi.softAPConfig(apIP, apIP, apSubnet);
@@ -291,7 +299,8 @@ void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
         sendConfig(payloadJSON);
     }
     else if (type == WIFIS_TYPE) {
-        scanWiFi(payloadJSON);
+        // scanWiFi(payloadJSON);
+        sendWiFiScanResults();
     }
     else {
         _ws.textAll("Invalid request");
