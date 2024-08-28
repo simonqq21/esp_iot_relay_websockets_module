@@ -7,7 +7,7 @@ async def echo(websocket):
         await websocket.send(message)
 
 async def serveWS(*tasks):
-    async with serve(echo, "localhost", 8765):
+    async with serve(echo, "", 5555):
         await asyncio.gather(*tasks, asyncio.get_running_loop().create_future())
 
 async def func1():

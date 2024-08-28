@@ -47,7 +47,7 @@
 
 import asyncio
 from websockets.asyncio.server import serve
-from websockets.sync.client import connect
+from websockets.asyncio.client import connect
 from time import sleep 
 import json 
 from datetime import datetime, time
@@ -59,30 +59,54 @@ class Client():
         self.wsRoute = wsRoute
         self.websocketURL = f"ws://{self.ip}:{self.port}/{self.wsRoute}"
     
-    async def receiveWSMessages(self, websocket):
-        async for message in websocket:
-            print(f"received from ESP32: {message}")
+    async def startWS(self):
+        self.websocket = await connect(self.websocketURL)
 
-    async def serveWS(self, *tasks):
-        async with serve(self.receiveWSMessages, self.ip, self.port, self.wsRoute):
-            await asyncio.gather(*tasks, asyncio.get_running_loop().create_future())
+    async def receiveWSMessages(self):
+        while True:
+            try:
+                # with connect(self.websocketURL) as websocket:
+                message = await self.websocket.recv()
+                jsonmessage = json.loads(message)
+                print(f"JSON message = {json.dumps(jsonmessage, indent=True)}\n")
+            except:
+                pass
 
-    async def load_wifis(self):
-        with connect(self.websocketURL)as websocket:
-            print("Testing ESP32 websockets load connection")
-            data = {}
-            data["cmd"] = "request"
-            data["type"] = "connection"
-            data["payload"] = {}
-            websocket.send(json.dumps(data))
-            message = websocket.recv()
-            jsonmessage = json.loads(message)
-            print(f"JSON message = {json.dumps(jsonmessage, indent=True)}\n")
+    async def loadWifis(self):
+        
+
+    async def loadConnection(self):
+        print("load connection")
+        data = {}
+        data["cmd"] = "request"
+        data["type"] = "connection"
+        data["payload"] = {}
+        await self.websocket.send(json.dumps(data))
+
+    async def loadDateTime(self):
+
+    async def loadRelayState(self):
+
+    async def loadConfig(self):
+
+    async def saveConnection(self):
+
+    async def saveDateTime(self):
+
+    async def saveRelayState(self):
+
+    async def saveConfig(self):
+
 
 async def main():
     client = Client("192.168.5.70", 5555, "ws")
+    await client.startWS()
+    # task1 = asyncio.create_task(func1())
     task1 = asyncio.create_task(client.receiveWSMessages())
-    await asyncio.gather(task1)
+    task2 = asyncio.create_task(client.load_wifis())
+    await asyncio.gather(task2, task1)
+    # loop = asyncio.get_event_loop()
+    # loop.run_until_complete(asyncio.gather(task1, task2))
 
 if __name__ == "__main__":
     asyncio.run(main())
