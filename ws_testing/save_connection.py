@@ -23,16 +23,15 @@ else:
     data["cmd"] = "save"
     data["type"] = "connection"
     data["payload"] = {}
-    data["payload"]["ssid"] = "QUE-STARLINK"
-    data["payload"]["pass"] = "afafafafa"
+    data["payload"]["ssid"] = ""
+    data["payload"]["pass"] = ""
     data["payload"]["ipIndex"] = 70
     data["payload"]["port"] = 5555
 
 # test script for the websocket module 
 def main():
     with connect(websocketURL) as websocket:
-        # save connection
-        websocket.send(json.dumps(data))
+        
 
 if __name__ == "__main__":
     main()
