@@ -19,8 +19,10 @@ void setup() {
 
   rtcntp.begin();
   rtcntp.setGMTOffset(8);
-  Serial.println(rtcntp.getISODateTime());
+  rtcntp.refreshNTPTime();
+  rtcntp.updateRTCWithNTP();
   now = rtcntp.getRTCTime();
+  Serial.println(rtcntp.getISODateTime());
 
   eC.load(now);
 

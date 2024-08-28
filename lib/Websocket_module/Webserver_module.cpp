@@ -44,10 +44,6 @@ void WebserverModule::connect() {
     IPAddress gateway;
     IPAddress subnet(255,255,255,0);
     IPAddress dns(8,8,8,8);
-    // Serial.printf("%s, %s\n", _eC->getSSID().c_str(), _eC->getPassword().c_str());
-    // WiFi.enableAP(false);
-    // WiFi.softAPdisconnect(true);
-    delay(1000);
     WiFi.mode(WIFI_MODE_STA);
     WiFi.begin(_eC->getSSID().c_str(), _eC->getPassword().c_str());
     delay(3000);
@@ -55,9 +51,13 @@ void WebserverModule::connect() {
     Serial.printf("wifi status = %d\n", WiFi.status());
     localIP = WiFi.localIP();
     Serial.println(WiFi.localIP());
+    gateway = WiFi.gatewayIP();
+    Serial.print("gateway IP = ");
+    Serial.println(gateway);
     localIP[3] = _eC->getIPAddressIndex();
-    WiFi.config(localIP, gateway, subnet);
+    WiFi.config(localIP, gateway, subnet, dns);
     Serial.println(WiFi.localIP());
+    delay(3000);
 }
 
 /*
