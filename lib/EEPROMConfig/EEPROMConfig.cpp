@@ -222,6 +222,15 @@ void EEPROMConfig::begin() {
     }
 }
 
+void EEPROMConfig::load() {
+    EEPROM.get(_eepromAddr, _eC);
+    Serial.println("loaded _eC");
+    for (int i=0;i<NUMBER_OF_TIMESLOTS;i++) {
+        _timeslots[i] = new TimeSlot(&_eC._mainConfig.timeSlots[i], i);
+    }
+    Serial.println("Initialized TimeSlots");
+}
+
 void EEPROMConfig::load(DateTime now) {
     EEPROM.get(_eepromAddr, _eC);
     Serial.println("loaded _eC");

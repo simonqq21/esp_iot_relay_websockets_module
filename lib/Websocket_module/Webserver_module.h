@@ -221,7 +221,7 @@ class WebserverModule {
         
         // wifi connection methods
         static void connect();
-        static void scanWiFi(JsonDocument inputPayloadJSON = JsonDocument());
+        static void scanWiFi();
         static void sendWiFiScanResults();
         static void checkWiFiStatusLoop();
 

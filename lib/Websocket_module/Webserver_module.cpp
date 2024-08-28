@@ -37,13 +37,7 @@ void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp) {
 /*
 */
 void WebserverModule::connect() {
-    Serial.println("Scanning wifi...");
-    WiFi.mode(WIFI_STA);
-    // WiFi.scanDelete();
-    int n = WiFi.scanNetworks(false);
-    // int n2 = WiFi.scanComplete();
-    Serial.printf("%d networks found.\n", n);
-    // Serial.printf("%d networks found.\n", n2);
+   
     Serial.println("Connecting to wifi");
     // attempt to connect to wifi 
     IPAddress localIP;
@@ -51,8 +45,8 @@ void WebserverModule::connect() {
     IPAddress subnet(255,255,255,0);
     IPAddress dns(8,8,8,8);
     // Serial.printf("%s, %s\n", _eC->getSSID().c_str(), _eC->getPassword().c_str());
-    WiFi.enableAP(false);
-    WiFi.softAPdisconnect(true);
+    // WiFi.enableAP(false);
+    // WiFi.softAPdisconnect(true);
     delay(1000);
     WiFi.mode(WIFI_MODE_STA);
     WiFi.begin(_eC->getSSID().c_str(), _eC->getPassword().c_str());
@@ -68,9 +62,11 @@ void WebserverModule::connect() {
 
 /*
 */
-void WebserverModule::scanWiFi(JsonDocument inputPayloadJSON) {
+void WebserverModule::scanWiFi() {
     Serial.println("Scanning wifi...");
-    // int n = WiFi.scanNetworks(true);
+    WiFi.mode(WIFI_STA);
+    int n = WiFi.scanNetworks(false);
+    Serial.printf("%d networks found.\n", n);
 }
 
 void WebserverModule::sendWiFiScanResults() {

@@ -10,19 +10,22 @@ void setup() {
   DateTime now;
   Serial.begin(115200);
 
-  WiFi.begin("X", "M");
+  eC.begin();
+  eC.load();
+
+  wsMod.scanWiFi();
+  wsMod.begin(&eC, &rtcntp);
+  wsMod.connect();
 
   rtcntp.begin();
   rtcntp.setGMTOffset(8);
-
   Serial.println(rtcntp.getISODateTime());
   now = rtcntp.getRTCTime();
 
-  eC.begin();
   eC.load(now);
 
-  wsMod.begin(&eC, &rtcntp);
-  wsMod.connect();
+
+
   // // set datetime and configuration values 
   // // connection
   // eC.setSSID("test-SSID");
@@ -49,6 +52,6 @@ void setup() {
 void loop() {
   // Serial.println(0);
   wsMod.checkWiFiStatusLoop();
-  wsMod.sendWiFiScanResults();
+  // wsMod.sendWiFiScanResults();
 }
 

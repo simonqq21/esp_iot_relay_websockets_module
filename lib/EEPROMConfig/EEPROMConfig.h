@@ -99,6 +99,7 @@ class EEPROMConfig {
         EEPROMConfig(unsigned int eepromAddr = 0);
         void print();
         void begin();
+        void load();
         void load(DateTime now);
         void save();
         void saveConnectionConfig();
