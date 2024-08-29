@@ -249,7 +249,7 @@ async def testSequence(client: Client, apMode):
 
 async def main():
     apMode = True 
-    # apMode = False
+    apMode = False
     if (apMode):
         client = Client("192.168.4.1", 5555, "ws")
     else:

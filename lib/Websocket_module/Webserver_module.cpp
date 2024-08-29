@@ -49,14 +49,17 @@ void WebserverModule::connect() {
     delay(3000);
     // Serial.printf("Connected to %s\n", WiFi.SSID());
     Serial.printf("wifi status = %d\n", WiFi.status());
-    localIP = WiFi.localIP();
-    Serial.println(WiFi.localIP());
-    gateway = WiFi.gatewayIP();
-    Serial.print("gateway IP = ");
-    Serial.println(gateway);
-    localIP[3] = _eC->getIPAddressIndex();
-    WiFi.config(localIP, gateway, subnet, dns);
-    Serial.println(WiFi.localIP());
+    
+    if (WiFi.status() == WL_CONNECTED) {
+        localIP = WiFi.localIP();
+        Serial.println(WiFi.localIP());
+        gateway = WiFi.gatewayIP();
+        Serial.print("gateway IP = ");
+        Serial.println(gateway);
+        localIP[3] = _eC->getIPAddressIndex();
+        WiFi.config(localIP, gateway, subnet, dns);
+        Serial.println(WiFi.localIP());
+    }
     delay(3000);
 }
 
