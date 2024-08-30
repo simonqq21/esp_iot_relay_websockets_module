@@ -58,12 +58,16 @@ class Client():
         self.port = port
         self.wsRoute = wsRoute
         self.websocketURL = f"ws://{self.ip}:{self.port}/{self.wsRoute}"
+        self.endloop = False;
     
     async def startWS(self):
         self.websocket = await connect(self.websocketURL)
 
+    def endLoop(self):
+        self.endloop = True 
+
     async def receiveWSMessages(self):
-        while True:
+        while not self.endloop:
             try:
                 # with connect(self.websocketURL) as websocket:
                 message = await self.websocket.recv()
@@ -246,10 +250,11 @@ async def testSequence(client: Client, apMode):
         await client.saveConnection("QUE-STARLINK", "Quefamily01259", 70, 5555)
     else:
         await client.saveConnection("QUE-STARLINK", "wrongpassword", 70, 5555)
+    client.endLoop()
 
 async def main():
     apMode = True 
-    apMode = False
+    # apMode = False
     if (apMode):
         client = Client("192.168.4.1", 5555, "ws")
     else:
