@@ -7,6 +7,14 @@ char WebserverModule::_strData[1250];
 EEPROMConfig* WebserverModule::_eC;
 RTCNTP* WebserverModule::_rtcntp;
 IPAddress  WebserverModule::_apIP;
+void (*WebserverModule::_sendConnectionFunc)();
+void (*WebserverModule::_sendRelayStateFunc)();
+void (*WebserverModule::_sendDateTimeFunc)();
+void (*WebserverModule::_sendConfigFunc)();
+void (*WebserverModule::_receiveConnectionFunc)();
+void (*WebserverModule::_receiveRelayStateFunc)();
+void (*WebserverModule::_receiveDateTimeFunc)();
+void (*WebserverModule::_receiveConfigFunc)();
 
 // AsyncWebServer _server = AsyncWebServer(5555);
 // AsyncWebSocket _ws = AsyncWebSocket("/ws");
@@ -287,15 +295,27 @@ void WebserverModule::sendConfig(JsonDocument inputPayloadJSON) {
 void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
     if (type == CONNECTION_TYPE) {
         sendConnection(payloadJSON);
+        if (_sendConnectionFunc != NULL) {
+            _sendConnectionFunc();
+        }
     }
     else if (type == RELAY_STATE_TYPE) {
         sendRelayState(payloadJSON);
+        if (_sendRelayStateFunc != NULL) {
+            _sendRelayStateFunc();
+        }
     }
     else if (type == DATETIME_TYPE) {
         sendDateTime(payloadJSON);
+        if (_sendDateTimeFunc != NULL) {
+            _sendDateTimeFunc();
+        }  
     }
     else if (type == CONFIG_TYPE) {
         sendConfig(payloadJSON);
+        if (_sendConfigFunc != NULL) {
+            _sendConfigFunc();           
+        }
     }
     else if (type == WIFIS_TYPE) {
         // scanWiFi(payloadJSON);
@@ -304,6 +324,22 @@ void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
     else {
         _ws.textAll("Invalid request");
     }
+}
+
+void WebserverModule::setSendConnectionCallback(void (*callback)()) {
+    _sendConnectionFunc = callback;
+}
+
+void WebserverModule::setSendRelayStateCallback(void (*callback)()) {
+    _sendRelayStateFunc = callback;
+}
+
+void WebserverModule::setSendDateTimeCallback(void (*callback)()) {
+    _sendDateTimeFunc = callback;
+}
+
+void WebserverModule::setSendConfigCallback(void (*callback)()) {
+    _sendConfigFunc = callback;
 }
 
 // methods to receive and set new state from client browser 
@@ -350,18 +386,49 @@ void WebserverModule::receiveConfig(JsonDocument inputPayloadJSON) {
 void WebserverModule::receiveData(String type, JsonDocument payloadJSON) {
     if (type == CONNECTION_TYPE) {
         receiveConnection(payloadJSON);
+        if (_receiveConnectionFunc != NULL) {
+            _receiveConnectionFunc();
+        }
     }
     else if (type == RELAY_STATE_TYPE) {
         receiveRelayState(payloadJSON);
+        if (_receiveRelayStateFunc != NULL) {
+            _receiveRelayStateFunc();
+        }
     }
     else if (type == DATETIME_TYPE) {
         receiveDateTime(payloadJSON);
+        if (_receiveDateTimeFunc != NULL) {
+            _receiveDateTimeFunc();
+        }  
     }
     else if (type == CONFIG_TYPE) {
         receiveConfig(payloadJSON);
+        // Serial.printf("_receiveConfigFunc = %d\n", *_receiveConfigFunc);
+        if (_receiveConfigFunc != NULL) {
+            _receiveConfigFunc();
+        }
+        
     }
     else {
         _ws.textAll("Invalid save");
     }
 }
+
+void WebserverModule::setReceiveConnectionCallback(void (*callback)()){
+    _receiveConnectionFunc = callback;
+}
+
+void WebserverModule::setReceiveRelayStateCallback(void (*callback)()){
+    _receiveRelayStateFunc = callback;
+}
+
+void WebserverModule::setReceiveDateTimeCallback(void (*callback)()){
+    _receiveDateTimeFunc = callback;
+}
+
+void WebserverModule::setReceiveConfigCallback(void (*callback)()){
+    _receiveConfigFunc = callback;
+}
+
 

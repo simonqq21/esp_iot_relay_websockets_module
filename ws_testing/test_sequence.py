@@ -53,12 +53,13 @@ import json
 from datetime import datetime, time
 
 class Client():
-    def __init__(self, ip, port, wsRoute):
+    def __init__(self, ip, port, wsRoute, changeWiFi):
         self.ip = ip
         self.port = port
         self.wsRoute = wsRoute
         self.websocketURL = f"ws://{self.ip}:{self.port}/{self.wsRoute}"
         self.endloop = False;
+        self.changeWiFI = changeWiFi
     
     async def startWS(self):
         self.websocket = await connect(self.websocketURL)
@@ -175,7 +176,7 @@ class Client():
             data["payload"]["timeSlots"][i]["onEndTime"] = data["payload"]["timeSlots"][i]["onEndTime"].isoformat()
         await self.websocket.send(json.dumps(data))
 
-async def testSequence(client: Client, apMode):
+async def testSequence(client: Client, apMode, changeWiFi=False):
     print("ESP32 websocket module testing sequence")
     await client.loadWifis()
     await asyncio.sleep(3)
@@ -246,19 +247,22 @@ async def testSequence(client: Client, apMode):
     await client.loadConfig()
     await asyncio.sleep(3)
 
-    if (apMode):
-        await client.saveConnection("QUE-STARLINK", "Quefamily01259", 70, 5555)
-    else:
-        await client.saveConnection("QUE-STARLINK", "wrongpassword", 70, 5555)
+    if (changeWiFi):
+        if (apMode):
+            await client.saveConnection("QUE-STARLINK", "Quefamily01259", 70, 5555)
+        else:
+            await client.saveConnection("QUE-STARLINK", "wrongpassword", 70, 5555)
     client.endLoop()
 
 async def main():
     apMode = True 
-    # apMode = False
+    apMode = False
+    changeWiFi = False
+    
     if (apMode):
-        client = Client("192.168.4.1", 5555, "ws")
+        client = Client("192.168.4.1", 5555, "ws", changeWiFi)
     else:
-        client = Client("192.168.5.70", 5555, "ws")
+        client = Client("192.168.5.70", 5555, "ws", changeWiFi)
     await client.startWS()
     # task1 = asyncio.create_task(func1())
     receiveMessageTask = asyncio.create_task(client.receiveWSMessages())

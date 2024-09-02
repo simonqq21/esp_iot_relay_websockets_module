@@ -237,6 +237,11 @@ class WebserverModule {
         static void sendConfig(JsonDocument inputPayloadJSON);
         // method to handle requests from the client browser 
         static void handleRequest(String type, JsonDocument payloadJSON); 
+        // set callbacks for sending methods
+        static void setSendConnectionCallback(void (*callback)() = NULL);
+        static void setSendRelayStateCallback(void (*callback)() = NULL);
+        static void setSendDateTimeCallback(void (*callback)() = NULL);
+        static void setSendConfigCallback(void (*callback)() = NULL);
 
         // methods to receive and set new state from client browser 
         static void receiveConnection(JsonDocument inputPayloadJSON);
@@ -245,6 +250,11 @@ class WebserverModule {
         static void receiveConfig(JsonDocument inputPayloadJSON);
         // method to handle receiving different kinds of data from the client browser 
         static void receiveData(String type, JsonDocument payloadJSON);
+        // set callbacks for receiving methods
+        static void setReceiveConnectionCallback(void (*callback)() = NULL);
+        static void setReceiveRelayStateCallback(void (*callback)() = NULL);
+        static void setReceiveDateTimeCallback(void (*callback)() = NULL);
+        static void setReceiveConfigCallback(void (*callback)() = NULL);
 
     private:
         static AsyncWebServer _server;
@@ -255,6 +265,15 @@ class WebserverModule {
         static RTCNTP* _rtcntp;
         static IPAddress _apIP;
 
+        static void (*_sendConnectionFunc)();
+        static void (*_sendRelayStateFunc)();
+        static void (*_sendDateTimeFunc)();
+        static void (*_sendConfigFunc)();
+
+        static void (*_receiveConnectionFunc)();
+        static void (*_receiveRelayStateFunc)();
+        static void (*_receiveDateTimeFunc)();
+        static void (*_receiveConfigFunc)();
 };
 
 #endif

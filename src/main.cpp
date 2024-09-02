@@ -6,7 +6,41 @@ EEPROMConfig eC(0);
 RTCNTP rtcntp(+8);
 TimeSlot * timeslot;
 
+void dummySendConnectionFunc() {
+  Serial.println("run send connection function");
+}
+
+void dummySendRelayStateFunc() {
+  Serial.println("run send relay state function");
+}
+
+void dummySendDatetimeFunc() {
+  Serial.println("run send datetime function");
+}
+
+void dummySendConfigFunc() {
+  Serial.println("run send config function");
+}
+
+void dummyReceiveConnectionFunc() {
+  Serial.println("run receive connection function");
+}
+
+void dummyReceiveRelayStateFunc() {
+  Serial.println("run receive relay state function");
+}
+
+void dummyReceiveDatetimeFunc() {
+  Serial.println("run receive datetime function");
+}
+
+void dummyReceiveConfigFunc() {
+  Serial.println("run receive config function");
+}
+
 void setup() {
+  pinMode(2, OUTPUT);
+  digitalWrite(2, LOW);
   DateTime now;
   Serial.begin(115200);
 
@@ -16,6 +50,15 @@ void setup() {
   wsMod.scanWiFi();
   wsMod.begin(&eC, &rtcntp);
   wsMod.connect();
+  
+  wsMod.setSendConnectionCallback();
+  wsMod.setSendDateTimeCallback(dummySendDatetimeFunc);
+  wsMod.setSendRelayStateCallback(dummySendRelayStateFunc);
+  wsMod.setSendConfigCallback(dummySendConfigFunc);
+  wsMod.setReceiveConnectionCallback(dummyReceiveConnectionFunc);
+  wsMod.setReceiveDateTimeCallback(dummyReceiveDatetimeFunc);
+  wsMod.setReceiveRelayStateCallback(dummyReceiveRelayStateFunc);
+  wsMod.setReceiveConfigCallback();
 
   rtcntp.begin();
   rtcntp.setGMTOffset(8);
