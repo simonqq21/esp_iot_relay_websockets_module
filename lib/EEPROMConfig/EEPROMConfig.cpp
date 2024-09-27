@@ -341,8 +341,9 @@ TimeSlot* EEPROMConfig::getTimeSlot(int index) {
 }
 
 bool EEPROMConfig::checkIfAnyTimeSlotOn(DateTime now) {
+    Serial.println("checking timeslots");
     for (int i=0;i<NUMBER_OF_TIMESLOTS;i++) {
-        Serial.printf("checkIfAnyTimeSlotOn timeslot index %d returns\n", i);
+        // Serial.printf("checkIfAnyTimeSlotOn timeslot index %d returns\n", i);
         if (_timeslots[i]->checkIfOn(now)) {
             return true;
         }

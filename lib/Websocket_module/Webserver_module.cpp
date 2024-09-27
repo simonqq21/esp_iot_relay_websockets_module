@@ -1,12 +1,14 @@
 #include "Webserver_module.h"
 
-AsyncWebServer WebserverModule::_server = AsyncWebServer(5555);
+AsyncWebServer* WebserverModule::_server;
 AsyncWebSocket WebserverModule::_ws = AsyncWebSocket("/ws");
 JsonDocument WebserverModule::_jsonDoc;
 char WebserverModule::_strData[1250];
 EEPROMConfig* WebserverModule::_eC;
 RTCNTP* WebserverModule::_rtcntp;
 IPAddress  WebserverModule::_apIP;
+Relay* WebserverModule::_relay;
+
 void (*WebserverModule::_sendConnectionFunc)();
 void (*WebserverModule::_sendRelayStateFunc)();
 void (*WebserverModule::_sendDateTimeFunc)();
@@ -16,29 +18,53 @@ void (*WebserverModule::_receiveRelayStateFunc)();
 void (*WebserverModule::_receiveDateTimeFunc)();
 void (*WebserverModule::_receiveConfigFunc)();
 
-// AsyncWebServer _server = AsyncWebServer(5555);
-// AsyncWebSocket _ws = AsyncWebSocket("/ws");
-// WebserverModule::WebserverModule(): _server(5555), _ws("/ws") {
-// }
-
 WebserverModule::WebserverModule() {
 
 }
 
-void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp) {
+void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp, Relay* relay) {
     _eC = eC;
     _rtcntp = rtcntp;
+    _relay = relay;
 
     // start websockets and webserver
     _ws.onEvent(onEvent);
-    _server.addHandler(&_ws);
-    _server.begin();
+    _server = new AsyncWebServer(_eC->getPort());
+    _server->addHandler(&_ws);
+    _server->begin();
     Serial.println("initialized ws");
 
     // start serving webpages
-    AsyncWebHandler testHandler = _server.on("/test", HTTP_GET, [](AsyncWebServerRequest* request) {
+    AsyncWebHandler testHandler = _server->on("/test", HTTP_GET, [](AsyncWebServerRequest* request) {
         // request->send(200, "hhelloworld");
         request->send(200, "text/plain", "Hhhelloworld");
+    });
+    _server->on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+        request->send(LittleFS, "/index.html", String(), false);
+    });
+    _server->on("/index.html", HTTP_GET, [](AsyncWebServerRequest* request) {
+        request->send(LittleFS, "/index.html", String(), false);
+    });
+    _server->on("/wifi.html", HTTP_GET, [](AsyncWebServerRequest* request) {
+        request->send(LittleFS, "/wifi.html", String(), false);
+    });
+    _server->on("/styles.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(LittleFS, "/styles.css", "text/css", false);
+    });
+    _server->on("/index.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(LittleFS, "/index.css", "text/css", false);
+    });
+    _server->on("/wifi.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(LittleFS, "/wifi.css", "text/css", false);
+    });
+    _server->on("/wsMod.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(LittleFS, "/wsMod.js", "text/javascript", false);
+    });
+    _server->on("/index.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(LittleFS, "/index.js", "text/javascript", false);
+    });
+    _server->on("/wifi.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(LittleFS, "/wifi.js", "text/javascript", false);
     });
 }
 
@@ -148,6 +174,10 @@ void WebserverModule::sendWiFiScanResults() {
     }
 }
 
+void WebserverModule::cleanupClients() {
+    _ws.cleanupClients();
+}
+
 /*
 this method is called in the void loop 
 */
@@ -239,12 +269,12 @@ void WebserverModule::sendConnection(JsonDocument inputPayloadJSON) {
     _ws.textAll(_strData);
 }
 
-void WebserverModule::sendRelayState(JsonDocument inputPayloadJSON) {
+void WebserverModule::sendCurrentRelayState(bool curRelayState) {
     _jsonDoc.clear();
     _jsonDoc[CMD_KEY] = LOAD_CMD;
     _jsonDoc[TYPE_KEY] = RELAY_STATE_TYPE;
     JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
-    payloadJSON["relay_state"] = _eC->getRelayManualSetting();
+    payloadJSON["relay_state"] = curRelayState;
     serializeJson(_jsonDoc, _strData);
     Serial.printf("serialized JSON = %s\n", _strData);
     _ws.textAll(_strData);
@@ -300,7 +330,7 @@ void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
         }
     }
     else if (type == RELAY_STATE_TYPE) {
-        sendRelayState(payloadJSON);
+        sendCurrentRelayState(_relay->readState());
         if (_sendRelayStateFunc != NULL) {
             _sendRelayStateFunc();
         }
@@ -361,7 +391,8 @@ void WebserverModule::receiveRelayState(JsonDocument inputPayloadJSON) {
 }
 
 void WebserverModule::receiveDateTime(JsonDocument inputPayloadJSON) {
-    _rtcntp->setISODateTime(inputPayloadJSON["datetime"]);
+    String dtisostr = inputPayloadJSON["datetime"];
+    _rtcntp->setISODateTime(dtisostr);
     Serial.println("saved datetime");
 }
 
@@ -370,6 +401,7 @@ void WebserverModule::receiveConfig(JsonDocument inputPayloadJSON) {
     _eC->setNTPEnabled(inputPayloadJSON["ntpEnabledSetting"]);
     _eC->setGMTOffset(inputPayloadJSON["gmtOffsetSetting"]);
     _eC->setTimerEnabled(inputPayloadJSON["timerEnabledSetting"]);
+    _eC->setRelayManualSetting(inputPayloadJSON["relayManualSetting"]);
     _eC->setLEDSetting(inputPayloadJSON["ledSetting"]);
     for (int i=0;i<NUMBER_OF_TIMESLOTS;i++) {
         _eC->getTimeSlot(i)->setIndex(inputPayloadJSON["timeSlots"][i]["index"]);

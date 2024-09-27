@@ -10,6 +10,7 @@
 
 #include "RTCNTPlib.h"
 #include "EEPROMConfig.h"
+#include "Relay.h"
 
 /*
 Other libraries and modules to include:
@@ -217,12 +218,13 @@ const String WIFIS_TYPE= "wifis";
 class WebserverModule {
     public:
         WebserverModule();
-        static void begin(EEPROMConfig* eC, RTCNTP* rtcntp);
+        static void begin(EEPROMConfig* eC, RTCNTP* rtcntp, Relay* relay);
         
         // wifi connection methods
         static void connect();
         static void scanWiFi();
         static void sendWiFiScanResults();
+        static void cleanupClients();
         static void checkWiFiStatusLoop();
 
         // websocket methods
@@ -231,10 +233,10 @@ class WebserverModule {
         static void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
 
         // methods to send ESP32 state to client browser
-        static void sendConnection(JsonDocument payloadJSON);
-        static void sendRelayState(JsonDocument inputPayloadJSON);
-        static void sendDateTime(JsonDocument inputPayloadJSON);
-        static void sendConfig(JsonDocument inputPayloadJSON);
+        static void sendConnection(JsonDocument payloadJSON=JsonDocument());
+        static void sendCurrentRelayState(bool curRelayState);
+        static void sendDateTime(JsonDocument inputPayloadJSON=JsonDocument());
+        static void sendConfig(JsonDocument inputPayloadJSON=JsonDocument());
         // method to handle requests from the client browser 
         static void handleRequest(String type, JsonDocument payloadJSON); 
         // set callbacks for sending methods
@@ -257,13 +259,14 @@ class WebserverModule {
         static void setReceiveConfigCallback(void (*callback)() = NULL);
 
     private:
-        static AsyncWebServer _server;
+        static AsyncWebServer* _server;
         static AsyncWebSocket _ws;
         static JsonDocument _jsonDoc;
         static char _strData[1250];
         static EEPROMConfig* _eC;
         static RTCNTP* _rtcntp;
         static IPAddress _apIP;
+        static Relay* _relay; 
 
         static void (*_sendConnectionFunc)();
         static void (*_sendRelayStateFunc)();
