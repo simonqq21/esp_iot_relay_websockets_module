@@ -5,6 +5,7 @@ WebserverModule wsMod;
 EEPROMConfig eC(0);
 RTCNTP rtcntp(+8);
 TimeSlot * timeslot;
+Relay relay(2);
 
 void dummySendConnectionFunc() {
   Serial.println("run send connection function");
@@ -48,7 +49,7 @@ void setup() {
   eC.load();
 
   wsMod.scanWiFi();
-  wsMod.begin(&eC, &rtcntp);
+  wsMod.begin(&eC, &rtcntp, &relay);
   wsMod.connect();
   
   wsMod.setSendConnectionCallback();

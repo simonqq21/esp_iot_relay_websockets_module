@@ -96,7 +96,7 @@ from ESP32 to browser
         name: string,
         ntpEnabledSetting: bool,
         gmtOffsetSetting: int, 
-        timerEnabledSetting: bool,
+        operationModeSetting: int,
         ledSetting: int,
         relayManualSetting: bool,
         timeSlots[]: timeSlot[] {
@@ -105,6 +105,7 @@ from ESP32 to browser
             onStartTime: string (ISO datetime),
             onEndTime: string (ISO datetime),
         },
+        countdownDurationSetting: unsigned long,
     },
 }
 
@@ -189,7 +190,7 @@ from browser to ESP32
         name: string,
         ntpEnabledSetting: bool,
         gmtOffsetSetting: int, 
-        timerEnabledSetting: bool,
+        operationModeSetting: int,
         ledSetting: int,
         timeSlots[]: timeSlot[] {
             index: int,
@@ -197,9 +198,60 @@ from browser to ESP32
             onStartTime: string (ISO time),
             onEndTime: string (ISO time),
         },
+        countdownDurationSetting: unsigned long,
     },
 }
+
+- browser switch relay state (without saving)
+switches relay state in manual mode and starts/stops the countdown timer
+{
+    cmd: "switch",
+    type: "relay_state",
+    payload: {
+        relay_state: bool,
+    },
+}
+
 */
+
+
+
+
+/*
+    4,0
+    wifi.status = 3 when successfully connected to AP 
+    wifi.status = 6 when trying to connect
+    wifi.status = 1 when expected wifi doesn't exist either because of wrong credentials
+        or network just doens't exist.
+    wifi.status = 255 when in STA mode
+
+    when wifi credentials are wrong, 
+    6, 1, 255
+
+    when wifi credentials are correct, 
+    6, 3
+
+    when wifi hotspot doesn't exist upon startup,
+    6, 1, 255
+
+    when wifi hotspot stopped existing while working,
+    3, 255
+
+    Expected wifi connection behavior:
+        When ESP32 starts and attempts to connect with a wifi hotspot with correct credentials,
+    then it will connect successfully. 
+        When ESP32 starts and attempts to connect with a wifi hotspot with wrong credentials,
+    then it will fail to connect and start its own hotspot without resetting the saved wifi credentials.
+        When ESP32 starts and attempts to connect with a wifi hotspot that doesn't exist,
+    then it will start its own hotspot without resetting the saved wifi credentials.
+        When ESP32 starts and connects successfully to a wifi hotspot that suddenly disappears during
+    operation, then it must attempt to reconnect until the wifi hotspot reappears. 
+        The WiFi credentials in itys EEPROM must not be reset to default values except via websocket or physical 
+    button long press.
+
+    */
+
+
 
 // some definitions for JSON msg constants
 const String CMD_KEY = "cmd";
@@ -209,6 +261,7 @@ const String PAYLOAD_KEY = "payload";
 const String LOAD_CMD = "load";
 const String SAVE_CMD = "save";
 const String REQUEST_CMD = "request";
+const String SWITCH_CMD = "switch";
 const String CONNECTION_TYPE = "connection";
 const String RELAY_STATE_TYPE = "relay_state"; 
 const String DATETIME_TYPE = "datetime"; 
@@ -250,8 +303,9 @@ class WebserverModule {
         static void receiveRelayState(JsonDocument inputPayloadJSON);
         static void receiveDateTime(JsonDocument inputPayloadJSON);
         static void receiveConfig(JsonDocument inputPayloadJSON);
+        static void switchRelayState(JsonDocument inputPayloadJSON);
         // method to handle receiving different kinds of data from the client browser 
-        static void receiveData(String type, JsonDocument payloadJSON);
+        static void receiveData(String cmd, String type, JsonDocument payloadJSON);
         // set callbacks for receiving methods
         static void setReceiveConnectionCallback(void (*callback)() = NULL);
         static void setReceiveRelayStateCallback(void (*callback)() = NULL);
@@ -277,6 +331,8 @@ class WebserverModule {
         static void (*_receiveRelayStateFunc)();
         static void (*_receiveDateTimeFunc)();
         static void (*_receiveConfigFunc)();
+
+        static void (*_switchRelayStateFunc)();
 };
 
 #endif

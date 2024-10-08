@@ -137,26 +137,36 @@ void TimeSlot::setOnOffFullDateTimes(DateTime now, bool interrupt) {
         timeslot is on, which ay cause the timeslot state to suddenly toggle.
     */
     // Serial.println("set full on off date times");
-    if (!interrupt) {
-        //if interrupt is false then only proceed if the current state is off and 
-        // the datetime now is after the onEndFullTime.
-        if (_currentState || now <= _onEndFullTime)
-            return;
-    }
+    // if (!interrupt) {
+    //     //if interrupt is false then only proceed if the current state is off and 
+    //     // the datetime now is after the onEndFullTime.
+    //     //  || now <= _onEndFullTime
+    //     if (_currentState)
+    //         return;
+    // }
     // assign date now to the start time
     _onStartFullTime = DateTime(now.year(), now.month(), now.day(), 
         _tS->onStartTime.hour(), _tS->onStartTime.minute(), _tS->onStartTime.second());
     // assign date now to the end time 
     _onEndFullTime = DateTime(now.year(), now.month(), now.day(), 
-    _tS->onEndTime.hour(), _tS->onEndTime.minute(), _tS->onEndTime.second());
+        _tS->onEndTime.hour(), _tS->onEndTime.minute(), _tS->onEndTime.second());
 
     /* 
     compare the start and end times
     if the start datetime has a higher or equal time than the end datetime, 
         add one day to the end datetime.
+    7:40-7:30
+    if now = 7:40, add 1 day to endTime
+    if now = 7:45, add 1 day to endTime
+    if now = 1:00, subtract 1 day from startTime
     */
     if (_onStartFullTime >= _onEndFullTime) {
-        _onEndFullTime = _onEndFullTime + TimeSpan(60*60*24);
+        if (now.hour()*60*60+now.minute()*60+now.second() < _onEndFullTime.hour()*60*60+_onEndFullTime.minute()*60+_onEndFullTime.second()) {
+            _onStartFullTime = _onStartFullTime - TimeSpan(60*60*24);
+        }
+        else {
+            _onEndFullTime = _onEndFullTime + TimeSpan(60*60*24);
+        }
     }
 
     // Serial.printf("start= %04d/%02d/%02d %02d:%02d:%02d\n", _onStartFullTime.year(), _onStartFullTime.month(),
@@ -165,8 +175,12 @@ void TimeSlot::setOnOffFullDateTimes(DateTime now, bool interrupt) {
     //     _onEndFullTime.day(), _onEndFullTime.hour(), _onEndFullTime.minute(), _onEndFullTime.second());
 }
 
-bool TimeSlot::checkIfOn(DateTime now) {
-    this->setOnOffFullDateTimes(now);
+bool TimeSlot::checkIfOn(DateTime now, bool interrupt) {
+    this->setOnOffFullDateTimes(now, interrupt);
+    // Serial.printf("start= %04d/%02d/%02d %02d:%02d:%02d\n", _onStartFullTime.year(), _onStartFullTime.month(),
+    //     _onStartFullTime.day(), _onStartFullTime.hour(), _onStartFullTime.minute(), _onStartFullTime.second());
+    // Serial.printf("end= %04d/%02d/%02d %02d:%02d:%02d\n\n", _onEndFullTime.year(), _onEndFullTime.month(),
+    //     _onEndFullTime.day(), _onEndFullTime.hour(), _onEndFullTime.minute(), _onEndFullTime.second());
     if (_tS->enabled) {
         if (now >= _onStartFullTime && now <= _onEndFullTime) {
             _currentState = true;
@@ -201,7 +215,7 @@ void EEPROMConfig::print() {
     Serial.printf("Device name = %s\n", this->getName());
     Serial.printf("ntpEnabledSetting=%d\n", this->getNTPEnabled());
     Serial.printf("gmtOffsetSetting=%d\n", this->getGMTOffset());
-    Serial.printf("timerEnabledSetting=%d\n", this->getTimerEnabled());
+    Serial.printf("operationModeSetting=%d\n", this->getOperationMode());
     Serial.printf("ledSetting=%d\n", this->getLEDSetting());
     Serial.printf("relayManualSetting=%d\n", this->getRelayManualSetting());
     Serial.println();
@@ -312,12 +326,20 @@ void EEPROMConfig::setGMTOffset(short gmtOffset) {
     _eC._mainConfig.gmtOffsetSetting = gmtOffset;
 }
 
-bool EEPROMConfig::getTimerEnabled() {
-    return _eC._mainConfig.timerEnabledSetting;
+// bool EEPROMConfig::getTimerEnabled() {
+//     return _eC._mainConfig.timerEnabledSetting;
+// }
+
+// void EEPROMConfig::setTimerEnabled(bool timerEnabled) {
+//     _eC._mainConfig.timerEnabledSetting = timerEnabled;
+// }
+
+int EEPROMConfig::getOperationMode() {
+    return _eC._mainConfig.operationModeSetting;
 }
 
-void EEPROMConfig::setTimerEnabled(bool timerEnabled) {
-    _eC._mainConfig.timerEnabledSetting = timerEnabled;
+void EEPROMConfig::setOperationMode(int operationMode){
+    _eC._mainConfig.operationModeSetting = operationMode;
 }
 
 short EEPROMConfig::getLEDSetting() {
@@ -340,13 +362,50 @@ TimeSlot* EEPROMConfig::getTimeSlot(int index) {
     return _timeslots[index];
 }
 
-bool EEPROMConfig::checkIfAnyTimeSlotOn(DateTime now) {
+bool EEPROMConfig::checkIfAnyTimeSlotOn(DateTime now, bool interrupt) {
     Serial.println("checking timeslots");
     for (int i=0;i<NUMBER_OF_TIMESLOTS;i++) {
         // Serial.printf("checkIfAnyTimeSlotOn timeslot index %d returns\n", i);
-        if (_timeslots[i]->checkIfOn(now)) {
+        if (_timeslots[i]->checkIfOn(now, interrupt)) {
             return true;
         }
     }
     return false;
+}
+
+unsigned long EEPROMConfig::getCountdownDuration() {
+    return _eC._mainConfig.countdownDurationSetting;
+}
+void EEPROMConfig::setCountdownDuration(unsigned long countdownDuration) {
+    _eC._mainConfig.countdownDurationSetting = countdownDuration;
+}
+
+void EEPROMConfig::startCountdownTimer() {
+    countdownTimerVars.timeRemaining = _eC._mainConfig.countdownDurationSetting;
+    countdownTimerVars.pause = false;
+}
+
+void EEPROMConfig::stopCountdownTimer() {
+    countdownTimerVars.timeRemaining = -1;
+}
+
+bool EEPROMConfig::checkCountdownTimer(unsigned long min_ms) {
+    if (countdownTimerVars.timeRemaining > min_ms && !countdownTimerVars.pause) {
+        unsigned long timeDifference = millis() - countdownTimerVars.lastTimeChecked;
+        countdownTimerVars.timeRemaining -= timeDifference;
+        countdownTimerVars.lastTimeChecked = millis();
+        Serial.printf("timeRemaining=%d\n", countdownTimerVars.timeRemaining);
+        return (countdownTimerVars.timeRemaining > 0)? 1:0;
+    }
+    else {
+        return 0;
+    }
+}
+
+void EEPROMConfig::pauseCountdownTimer() {
+    countdownTimerVars.pause = true;
+}
+
+void EEPROMConfig::unpauseCountdownTimer() {
+    countdownTimerVars.pause = false;
 }
