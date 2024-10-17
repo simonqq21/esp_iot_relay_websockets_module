@@ -59,6 +59,7 @@ from ESP32 to browser
         }
     },
 }
+
 - ESP32 send connection details to browser
 {
     cmd: "load",
@@ -70,12 +71,12 @@ from ESP32 to browser
     },
 }
 
-- ESP32 send relay state to browser
+- ESP32 send relay states to browser
 {
     cmd: "load",
-    type: "relay_state",
+    type: "relay_states",
     payload: {
-        relay_state: bool,
+        relay_states[NUMBER_OF_RELAYS]: bool[NUMBER_OF_RELAYS],
     },
 }
 
@@ -91,21 +92,32 @@ from ESP32 to browser
 - ESP32 send main configuration to browser
 {
     cmd: "load",
-    type: "config",
+    type: "main_config",
     payload: {
         name: string,
         ntpEnabledSetting: bool,
         gmtOffsetSetting: int, 
-        operationModeSetting: int,
-        ledSetting: int,
-        relayManualSetting: bool,
-        timeSlots[]: timeSlot[] {
+    },
+}
+
+- ESP32 send relays configuration to browser
+{
+    cmd: "load",
+    type: "relay_configs",
+    payload: {
+        relay_config: {
             index: int,
-            enabled: bool,
-            onStartTime: string (ISO datetime),
-            onEndTime: string (ISO datetime),
-        },
-        countdownDurationSetting: unsigned long,
+            ledSetting: int,
+            operationModeSetting: int,
+            relayManualSetting: bool,
+            timeSlots[]: timeSlot[] {
+                index: int,
+                enabled: bool,
+                onStartTime: string (ISO datetime),
+                onEndTime: string (ISO datetime),
+            },
+            countdownDurationSetting: unsigned long,
+        }
     },
 }
 
@@ -131,7 +143,7 @@ from browser to ESP32
 - Browser request relay state from ESP32
 {
     cmd: "request",
-    type: "relay_state",
+    type: "relay_states",
     payload: {
     },
 }
@@ -147,7 +159,15 @@ from browser to ESP32
 - Browser request main configuration from ESP32
 {
     cmd: "request",
-    type: "config",
+    type: "main_config",
+    payload: {
+    },
+}
+
+- Browser request relays configuration from ESP32
+{
+    cmd: "request",
+    type: "relay_configs",
     payload: {
     },
 }
@@ -167,8 +187,9 @@ from browser to ESP32
 - Browser send and set relay state to ESP32
 {
     cmd: "save",
-    type: "relay_state", 
+    type: "relay_states", 
     payload: {
+        index: int,
         relay_state: bool,
     },
 }
@@ -185,20 +206,30 @@ from browser to ESP32
 - Browser send and set main configuration to ESP32
 {
     cmd: "save",
-    type: "config",
+    type: "main_config",
     payload: {
         name: string,
         ntpEnabledSetting: bool,
         gmtOffsetSetting: int, 
+    },
+}
+
+- Browser send and set relay configuration to ESP32
+{
+    cmd: "save",
+    type: "relay_configs",
+    payload: {
+        index: int,
         operationModeSetting: int,
         ledSetting: int,
+        relayManualSetting: bool,
         timeSlots[]: timeSlot[] {
             index: int,
             enabled: bool,
             onStartTime: string (ISO time),
             onEndTime: string (ISO time),
         },
-        countdownDurationSetting: unsigned long,
+        countdownDurationSetting: long,
     },
 }
 
@@ -206,8 +237,9 @@ from browser to ESP32
 switches relay state in manual mode and starts/stops the countdown timer
 {
     cmd: "switch",
-    type: "relay_state",
+    type: "relay_states",
     payload: {
+        index: int,
         relay_state: bool,
     },
 }
@@ -218,6 +250,7 @@ switches relay state in manual mode and starts/stops the countdown timer
 
 
 /*
+    ESPWiFi behavior
     4,0
     wifi.status = 3 when successfully connected to AP 
     wifi.status = 6 when trying to connect
@@ -251,8 +284,6 @@ switches relay state in manual mode and starts/stops the countdown timer
 
     */
 
-
-
 // some definitions for JSON msg constants
 const String CMD_KEY = "cmd";
 const String TYPE_KEY = "type";
@@ -262,16 +293,19 @@ const String LOAD_CMD = "load";
 const String SAVE_CMD = "save";
 const String REQUEST_CMD = "request";
 const String SWITCH_CMD = "switch";
-const String CONNECTION_TYPE = "connection";
-const String RELAY_STATE_TYPE = "relay_state"; 
-const String DATETIME_TYPE = "datetime"; 
-const String CONFIG_TYPE = "config";
+
 const String WIFIS_TYPE= "wifis";
+const String CONNECTION_TYPE = "connection";
+const String RELAY_STATES_TYPE = "relay_states"; 
+const String DATETIME_TYPE = "datetime"; 
+const String MAIN_CONFIG_TYPE = "main_config";
+const String RELAY_CONFIGS_TYPE = "relay_configs";
+
 
 class WebserverModule {
     public:
         WebserverModule();
-        static void begin(EEPROMConfig* eC, RTCNTP* rtcntp, Relay* relay);
+        static void begin(EEPROMConfig* eC, RTCNTP* rtcntp, Relay relays[3]);
         
         // wifi connection methods
         static void connect();
@@ -287,9 +321,10 @@ class WebserverModule {
 
         // methods to send ESP32 state to client browser
         static void sendConnection(JsonDocument payloadJSON=JsonDocument());
-        static void sendCurrentRelayState(bool curRelayState);
+        static void sendCurrentRelayStates(bool curRelayStates[]);
         static void sendDateTime(JsonDocument inputPayloadJSON=JsonDocument());
-        static void sendConfig(JsonDocument inputPayloadJSON=JsonDocument());
+        static void sendMainConfig(JsonDocument inputPayloadJSON=JsonDocument());
+        static void sendRelayConfig(int rIndex, JsonDocument inputPayloadJSON=JsonDocument());
         // method to handle requests from the client browser 
         static void handleRequest(String type, JsonDocument payloadJSON); 
         // set callbacks for sending methods
@@ -300,9 +335,10 @@ class WebserverModule {
 
         // methods to receive and set new state from client browser 
         static void receiveConnection(JsonDocument inputPayloadJSON);
-        static void receiveRelayState(JsonDocument inputPayloadJSON);
+        // static void receiveRelayState(JsonDocument inputPayloadJSON);
         static void receiveDateTime(JsonDocument inputPayloadJSON);
-        static void receiveConfig(JsonDocument inputPayloadJSON);
+        static void receiveMainConfig(JsonDocument inputPayloadJSON);
+        static void receiveRelayConfigs(JsonDocument inputPayloadJSON);
         static void switchRelayState(JsonDocument inputPayloadJSON);
         // method to handle receiving different kinds of data from the client browser 
         static void receiveData(String cmd, String type, JsonDocument payloadJSON);
@@ -320,7 +356,7 @@ class WebserverModule {
         static EEPROMConfig* _eC;
         static RTCNTP* _rtcntp;
         static IPAddress _apIP;
-        static Relay* _relay; 
+        static Relay* _relays[NUMBER_OF_RELAYS]; 
 
         static void (*_sendConnectionFunc)();
         static void (*_sendRelayStateFunc)();

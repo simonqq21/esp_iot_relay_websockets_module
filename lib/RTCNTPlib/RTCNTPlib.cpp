@@ -2,9 +2,7 @@
 #include "RTCNTPlib.h"
 
 // constructor
-RTCNTP::RTCNTP(int gmtOffset) : _ntpClient(_ntpUDP, "ntp.pagasa.dost.gov.ph") {
-    _gmtOffsetInHours = gmtOffset;
-    _ntpClient.setTimeOffset(_gmtOffsetInHours * 3600);
+RTCNTP::RTCNTP() : _ntpClient(_ntpUDP, "ntp.pagasa.dost.gov.ph") {
 }
 
 // initialize RTC and NTP
@@ -69,6 +67,8 @@ DateTime RTCNTP::getNTPTime() {
 void RTCNTP::setRTCTime(DateTime newDT) {
     _rtc.adjust(newDT);
     this->getRTCTime();
+    // Serial.print("rtc adjusted to ");
+    // Serial.println(this->getISODateTime());
 }
 
 // refresh NTP time from the internet
@@ -78,7 +78,13 @@ bool RTCNTP::refreshNTPTime() {
     // when there is NTP connection, update returns 0 and isTimeSet returns 1
     _ntpClient.update();
     _ntpUpdateStatus = _ntpClient.isTimeSet();
-    // Serial.printf("ntpUpdateStatus=%d, isTimeSet=%d\n", _ntpUpdateStatus, _ntpClient.isTimeSet());
+    Serial.printf("ntpUpdateStatus=%d, isTimeSet=%d\n", _ntpUpdateStatus, _ntpClient.isTimeSet());
+    /*
+    ntpUpdateStatus=0, isTimeSet=0 when wifi has no access to NTP server or when it is in STA mode
+        (which obviously has no connection to the NTP server.)
+    ntpUpdateStatus=1, isTimeSet=1 when wifi has access to NTP server.
+    */
+
     return _ntpUpdateStatus;
 }
 
@@ -86,8 +92,10 @@ bool RTCNTP::refreshNTPTime() {
 void RTCNTP::updateRTCWithNTP() {
     // refresh NTP time
     this->refreshNTPTime();
-    // update RTC time to NTP time
-    this->setRTCTime(this->getNTPTime());
+    if (_ntpUpdateStatus) {
+        // update RTC time to NTP time
+        this->setRTCTime(this->getNTPTime());
+    }
     // get the current time
     this->getRTCTime();
 }
@@ -95,4 +103,5 @@ void RTCNTP::updateRTCWithNTP() {
 // set the NTP GMT offset
 void RTCNTP::setGMTOffset(int gmtOffset) {
     _gmtOffsetInHours = gmtOffset;
+    _ntpClient.setTimeOffset(_gmtOffsetInHours * 3600);
 }

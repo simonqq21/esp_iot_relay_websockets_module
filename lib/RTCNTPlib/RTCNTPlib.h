@@ -11,7 +11,7 @@
 // periodically, while the RTC can store the time when NTP connection is not available.
 class RTCNTP {
     public:
-        RTCNTP(int gmtOffset);
+        RTCNTP();
         void begin();
         void printTime();
         String getISODateTime();

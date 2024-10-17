@@ -7,7 +7,8 @@ char WebserverModule::_strData[1250];
 EEPROMConfig* WebserverModule::_eC;
 RTCNTP* WebserverModule::_rtcntp;
 IPAddress  WebserverModule::_apIP;
-Relay* WebserverModule::_relay;
+// Relay* WebserverModule::_relays;
+Relay* WebserverModule::_relays[NUMBER_OF_RELAYS];
 
 void (*WebserverModule::_sendConnectionFunc)();
 void (*WebserverModule::_sendRelayStateFunc)();
@@ -25,14 +26,16 @@ WebserverModule::WebserverModule() {
 
 }
 
-void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp, Relay* relay) {
+void WebserverModule::begin(EEPROMConfig* eC, RTCNTP* rtcntp, Relay relays[3]) {
     _eC = eC;
     _rtcntp = rtcntp;
-    _relay = relay;
-
-    // start websockets and webserver
+    for (int i=0;i<NUMBER_OF_RELAYS;i++) {
+        _relays[i] = &relays[i];
+    }
+    // start websockets and webserver   
     _ws.onEvent(onEvent);
     _server = new AsyncWebServer(_eC->getPort());
+    _server = new AsyncWebServer(7777);
     _server->addHandler(&_ws);
     _server->begin();
     Serial.println("initialized ws");
@@ -213,23 +216,11 @@ void WebserverModule::handleWebSocketMessage(void *arg, uint8_t *data, size_t le
         DeserializationError error = deserializeJson(_jsonDoc, (char*)data); 
         String cmd = _jsonDoc[CMD_KEY];
         String type = _jsonDoc[TYPE_KEY];
-        // String payload = _jsonDoc[PAYLOAD_KEY]["ssid"];
         JsonDocument payloadJSON = _jsonDoc[PAYLOAD_KEY];
 
         Serial.printf("cmd=%s\n", cmd);
         Serial.printf("type=%s\n", type);
-        // Serial.printf("payload=%s\n", payloadJSON["ssid"]);
-        // String ssid = payloadJSON["ssid"];
-        // Serial.printf("ssid=%s\n", ssid);
-        // Serial.printf("payload2=%s\n", payload2);
-        // char output[100];
-        // serializeJson(_jsonDoc, output);
-        // Serial.print(output);
-        // JsonDocument pj;
-        // deserializeJson(pj, _jsonDoc[PAYLOAD_KEY]);
         // JsonObject payload = pj.as<JsonObject>();
-        // Serial.printf("%s\n", pj["ssid"]);
-        
         if (cmd == REQUEST_CMD) {
             handleRequest(type, payloadJSON);
         }
@@ -274,12 +265,15 @@ void WebserverModule::sendConnection(JsonDocument inputPayloadJSON) {
     _ws.textAll(_strData);
 }
 
-void WebserverModule::sendCurrentRelayState(bool curRelayState) {
+void WebserverModule::sendCurrentRelayStates(bool curRelayStates[]) {
     _jsonDoc.clear();
     _jsonDoc[CMD_KEY] = LOAD_CMD;
-    _jsonDoc[TYPE_KEY] = RELAY_STATE_TYPE;
+    _jsonDoc[TYPE_KEY] = RELAY_STATES_TYPE;
     JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
-    payloadJSON["relay_state"] = curRelayState;
+    JsonArray relayStatesArr = payloadJSON["relay_states"].to<JsonArray>();
+    for (int i=0;i<NUMBER_OF_RELAYS;i++) {
+        relayStatesArr.add(curRelayStates[i]);
+    }
     serializeJson(_jsonDoc, _strData);
     Serial.printf("serialized JSON = %s\n", _strData);
     _ws.textAll(_strData);
@@ -297,21 +291,32 @@ void WebserverModule::sendDateTime(JsonDocument inputPayloadJSON) {
     _ws.textAll(_strData);
 }
 
-void WebserverModule::sendConfig(JsonDocument inputPayloadJSON) {
+void WebserverModule::sendMainConfig(JsonDocument inputPayloadJSON) {
     _jsonDoc.clear();
     _jsonDoc[CMD_KEY] = LOAD_CMD;
-    _jsonDoc[TYPE_KEY] = CONFIG_TYPE;
+    _jsonDoc[TYPE_KEY] = MAIN_CONFIG_TYPE;
     JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
         payloadJSON["name"] = _eC->getName();
         payloadJSON["ntpEnabledSetting"] = _eC->getNTPEnabled();
         payloadJSON["gmtOffsetSetting"] = _eC->getGMTOffset();
-        payloadJSON["operationModeSetting"] = _eC->getOperationMode();
-        payloadJSON["ledSetting"] = _eC->getLEDSetting();
-        payloadJSON["relayManualSetting"] = _eC->getRelayManualSetting();
+    serializeJson(_jsonDoc, _strData);
+    Serial.printf("serialized JSON = %s\n", _strData);
+    _ws.textAll(_strData);
+}
+
+void WebserverModule::sendRelayConfig(int rIndex, JsonDocument inputPayloadJSON) {
+    _jsonDoc.clear();
+    _jsonDoc[CMD_KEY] = LOAD_CMD;
+    _jsonDoc[TYPE_KEY] = RELAY_CONFIGS_TYPE;
+    JsonObject payloadJSON = _jsonDoc[PAYLOAD_KEY].to<JsonObject>();
+        payloadJSON["index"] = rIndex;
+        payloadJSON["ledSetting"] = _eC->getLEDSetting(rIndex);
+        payloadJSON["operationModeSetting"] = _eC->getOperationMode(rIndex);
+        payloadJSON["relayManualSetting"] = _eC->getRelayManualSetting(rIndex);
         JsonArray timeSlotsJSON = payloadJSON["timeSlots"].to<JsonArray>();
         JsonObject timeSlotJSON;
         for (int i=0;i<NUMBER_OF_TIMESLOTS;i++) {
-            TimeSlot* curTS = _eC->getTimeSlot(i);
+            TimeSlot* curTS = _eC->getTimeSlot(rIndex, i);
             timeSlotJSON = timeSlotsJSON.add<JsonObject>();
             timeSlotJSON["index"] = curTS->getIndex();
             timeSlotJSON["enabled"] = curTS->getEnabled();
@@ -319,13 +324,11 @@ void WebserverModule::sendConfig(JsonDocument inputPayloadJSON) {
             timeSlotJSON["onEndTime"] = curTS->getOnEndTimeISOString();
             // timeSlotJSON["durationInSeconds"] = curTS->getDuration();
         }
-        payloadJSON["countdownDurationSetting"] = _eC->getCountdownDuration();
-
+        payloadJSON["countdownDurationSetting"] = _eC->getCountdownDuration(rIndex);
     serializeJson(_jsonDoc, _strData);
     Serial.printf("serialized JSON = %s\n", _strData);
     _ws.textAll(_strData);
 }
-
 
 // method to handle requests from the client browser 
 void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
@@ -335,8 +338,13 @@ void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
             _sendConnectionFunc();
         }
     }
-    else if (type == RELAY_STATE_TYPE) {
-        sendCurrentRelayState(_relay->readState());
+    else if (type == RELAY_STATES_TYPE) {
+        bool relaystates[NUMBER_OF_RELAYS];
+        // _relay->readState()
+        for (int i=0;i<NUMBER_OF_RELAYS;i++) {
+            relaystates[i] = _relays[i]->readState();
+        }
+        sendCurrentRelayStates(relaystates);
         if (_sendRelayStateFunc != NULL) {
             _sendRelayStateFunc();
         }
@@ -347,10 +355,15 @@ void WebserverModule::handleRequest(String type, JsonDocument payloadJSON) {
             _sendDateTimeFunc();
         }  
     }
-    else if (type == CONFIG_TYPE) {
-        sendConfig(payloadJSON);
+    else if (type == MAIN_CONFIG_TYPE) {
+        sendMainConfig(payloadJSON);
         if (_sendConfigFunc != NULL) {
             _sendConfigFunc();           
+        }
+    }
+    else if (type == RELAY_CONFIGS_TYPE) {
+        for (int i=0;i<NUMBER_OF_RELAYS;i++) {
+            sendRelayConfig(i, payloadJSON);
         }
     }
     else if (type == WIFIS_TYPE) {
@@ -390,11 +403,11 @@ void WebserverModule::receiveConnection(JsonDocument inputPayloadJSON) {
     ESP.restart();
 }
 
-void WebserverModule::receiveRelayState(JsonDocument inputPayloadJSON) {
-    _eC->setRelayManualSetting(inputPayloadJSON["relay_state"]);
-    _eC->saveMainConfig();
-    Serial.println("saved relay manual state");
-}
+// void WebserverModule::receiveRelayState(JsonDocument inputPayloadJSON) {
+//     _eC->setRelayManualSetting(inputPayloadJSON["relay_state"]);
+//     _eC->saveMainConfig();
+//     Serial.println("saved relay manual state");
+// }
 
 void WebserverModule::receiveDateTime(JsonDocument inputPayloadJSON) {
     String dtisostr = inputPayloadJSON["datetime"];
@@ -402,24 +415,29 @@ void WebserverModule::receiveDateTime(JsonDocument inputPayloadJSON) {
     Serial.println("saved datetime");
 }
 
-void WebserverModule::receiveConfig(JsonDocument inputPayloadJSON) {
+void WebserverModule::receiveMainConfig(JsonDocument inputPayloadJSON) {
     _eC->setName(inputPayloadJSON["name"]);
     _eC->setNTPEnabled(inputPayloadJSON["ntpEnabledSetting"]);
     _eC->setGMTOffset(inputPayloadJSON["gmtOffsetSetting"]);
-    _eC->setOperationMode(inputPayloadJSON["operationModeSetting"]);
-    _eC->setRelayManualSetting(inputPayloadJSON["relayManualSetting"]);
-    _eC->setLEDSetting(inputPayloadJSON["ledSetting"]);
-    for (int i=0;i<NUMBER_OF_TIMESLOTS;i++) {
-        _eC->getTimeSlot(i)->setIndex(inputPayloadJSON["timeSlots"][i]["index"]);
-        _eC->getTimeSlot(i)->setEnabled(inputPayloadJSON["timeSlots"][i]["enabled"]);
-        _eC->getTimeSlot(i)->setOnStartTimeISOString(inputPayloadJSON["timeSlots"][i]["onStartTime"], 
-            _rtcntp->getRTCTime());
-        _eC->getTimeSlot(i)->setOnEndTimeISOString(inputPayloadJSON["timeSlots"][i]["onEndTime"], 
-            _rtcntp->getRTCTime());
-    }
-    _eC->setCountdownDuration(inputPayloadJSON["countdownDurationSetting"]);
     _eC->saveMainConfig();
     Serial.println("saved config");
+}
+
+void WebserverModule::receiveRelayConfigs(JsonDocument inputPayloadJSON) {
+    int relayIndex = inputPayloadJSON["index"];
+    _eC->setLEDSetting(relayIndex, inputPayloadJSON["ledSetting"]);
+    _eC->setOperationMode(relayIndex, inputPayloadJSON["operationModeSetting"]);
+    _eC->setRelayManualSetting(relayIndex, inputPayloadJSON["relayManualSetting"]);
+    for (int i=0;i<NUMBER_OF_TIMESLOTS;i++) {
+        _eC->getTimeSlot(relayIndex, i)->setIndex(inputPayloadJSON["timeSlots"][i]["index"]);
+        _eC->getTimeSlot(relayIndex, i)->setEnabled(inputPayloadJSON["timeSlots"][i]["enabled"]);
+        _eC->getTimeSlot(relayIndex, i)->setOnStartTimeISOString(inputPayloadJSON["timeSlots"][i]["onStartTime"], 
+            _rtcntp->getRTCTime());
+        _eC->getTimeSlot(relayIndex, i)->setOnEndTimeISOString(inputPayloadJSON["timeSlots"][i]["onEndTime"], 
+            _rtcntp->getRTCTime());
+    }
+    _eC->setCountdownDuration(relayIndex, inputPayloadJSON["countdownDurationSetting"]);
+    _eC->saveRelayConfig(relayIndex);
 }
 
 /**
@@ -428,15 +446,16 @@ void WebserverModule::receiveConfig(JsonDocument inputPayloadJSON) {
  * else if in countdown timer mode, start or stop the countdown timer.
  */
 void WebserverModule::switchRelayState(JsonDocument inputPayloadJSON) {
-    if (_eC->getOperationMode() == 1) {
-        _eC->setRelayManualSetting(inputPayloadJSON["relay_state"]);
+    int relayIndex = inputPayloadJSON["index"];
+    if (_eC->getOperationMode(relayIndex) == 1) {
+        _eC->setRelayManualSetting(relayIndex, inputPayloadJSON["relay_state"]);
     }
-    else if (_eC->getOperationMode() == 3) {
+    else if (_eC->getOperationMode(relayIndex) == 3) {
         if (inputPayloadJSON["relay_state"]) {
-            _eC->startCountdownTimer();
+            _eC->startCountdownTimer(relayIndex);
         }
         else {
-            _eC->stopCountdownTimer();
+            _eC->stopCountdownTimer(relayIndex);
         }
     }
 }
@@ -449,27 +468,32 @@ void WebserverModule::receiveData(String cmd, String type, JsonDocument payloadJ
                 _receiveConnectionFunc();
             }
         }
-        else if (type == RELAY_STATE_TYPE) {
-            receiveRelayState(payloadJSON);
-            if (_receiveRelayStateFunc != NULL) {
-                _receiveRelayStateFunc();
-            }
-        }
+        // else if (type == RELAY_STATES_TYPE) {
+        //     receiveRelayState(payloadJSON);
+        //     if (_receiveRelayStateFunc != NULL) {
+        //         _receiveRelayStateFunc();
+        //     }
+        // }
         else if (type == DATETIME_TYPE) {
             receiveDateTime(payloadJSON);
             if (_receiveDateTimeFunc != NULL) {
                 _receiveDateTimeFunc();
             }  
         }
-        else if (type == CONFIG_TYPE) {
-            receiveConfig(payloadJSON);
+        else if (type == MAIN_CONFIG_TYPE) {
+            receiveMainConfig(payloadJSON);
             if (_receiveConfigFunc != NULL) {
                 _receiveConfigFunc();
             }
         }
+        else if (type == RELAY_CONFIGS_TYPE) {
+            receiveRelayConfigs(payloadJSON);
+
+        }
+
     }
     else if (cmd == SWITCH_CMD) {
-        if (type == RELAY_STATE_TYPE) {
+        if (type == RELAY_STATES_TYPE) {
             switchRelayState(payloadJSON);
             if (_switchRelayStateFunc != NULL) {
                 _switchRelayStateFunc();
